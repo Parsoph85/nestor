@@ -1,0 +1,339 @@
+package com.example.nestor
+
+import android.content.ContentValues
+import android.content.Context
+import android.database.Cursor
+import android.database.sqlite.SQLiteDatabase
+import android.database.sqlite.SQLiteOpenHelper
+
+class NotesDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME, null, DATABASE_VERSION) {
+
+    companion object {
+        private const val DATABASE_NAME = "notes.db"
+        private const val DATABASE_VERSION = 1
+        const val TABLE_NOTES = "notes"
+        const val TABLE_SETTING = "setting"
+        const val TABLE_LABELS = "labels"
+
+        const val COLUMN_NOTE_ID = "id"
+        const val COLUMN_NOTE_THEME = "theme"
+        const val COLUMN_NOTE_TEXT = "text"
+        const val COLUMN_NOTE_LABEL = "label"
+        const val COLUMN_NOTE_TAGS = "tags"
+        const val COLUMN_NOTE_CH_DATA = "ch_data"
+        const val COLUMN_NOTE_DELETED = "deleted"
+
+        const val COLUMN_SETTING_ID = "id"
+        const val COLUMN_SETTING_SORTING = "sorting"
+        const val COLUMN_SETTING_UNAME = "uname"
+        const val COLUMN_SETTING_PWWD = "pwwd"
+        const val COLUMN_SETTING_CH_DATA = "ch_data"
+
+        const val COLUMN_LABELS_ID = "id"
+        const val COLUMN_LABELS_NAME = "name"
+        const val COLUMN_LABEL_COLOR1 = "color1"
+        const val COLUMN_LABEL_COLOR2 = "color2"
+    }
+
+    override fun onCreate(db: SQLiteDatabase) {
+        // Создание таблиц при первой установке приложения
+        db.execSQL("CREATE TABLE $TABLE_NOTES ($COLUMN_NOTE_ID INTEGER PRIMARY KEY AUTOINCREMENT, $COLUMN_NOTE_THEME TEXT, $COLUMN_NOTE_TEXT TEXT, $COLUMN_NOTE_LABEL TEXT, $COLUMN_NOTE_TAGS TEXT, $COLUMN_NOTE_CH_DATA TIMESTAMP DEFAULT CURRENT_TIMESTAMP, $COLUMN_NOTE_DELETED BOOLEAN)")
+        db.execSQL("CREATE TABLE $TABLE_SETTING ($COLUMN_SETTING_ID INTEGER PRIMARY KEY AUTOINCREMENT, $COLUMN_SETTING_SORTING INT, $COLUMN_SETTING_UNAME TEXT, $COLUMN_SETTING_PWWD TEXT, $COLUMN_SETTING_CH_DATA TIMESTAMP DEFAULT CURRENT_TIMESTAMP)")
+        db.execSQL("CREATE TABLE $TABLE_LABELS ($COLUMN_LABELS_ID INTEGER PRIMARY KEY AUTOINCREMENT, $COLUMN_LABELS_NAME TEXT, $COLUMN_LABEL_COLOR1 TEXT, $COLUMN_LABEL_COLOR2 TEXT)")
+
+        // Автоматическое добавление значений в таблицу setting
+        db.execSQL("INSERT INTO $TABLE_SETTING ($COLUMN_SETTING_SORTING) VALUES (4)")
+        // Автоматическое добавление значений в таблицу labels
+        db.execSQL("INSERT INTO $TABLE_LABELS ($COLUMN_LABELS_NAME, $COLUMN_LABEL_COLOR1, $COLUMN_LABEL_COLOR2) VALUES ('Без темы...', '#FFFFFF', '#ced9f2')")
+    }
+
+    override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
+        db.execSQL("DROP TABLE IF EXISTS $TABLE_NOTES")
+        db.execSQL("DROP TABLE IF EXISTS $TABLE_SETTING")
+        db.execSQL("DROP TABLE IF EXISTS $TABLE_LABELS")
+        onCreate(db)
+    }
+
+    // Функции CRUD для таблицы notes
+    fun addNote(): Long {
+        val db = writableDatabase
+        val values = ContentValues().apply {
+            put(COLUMN_NOTE_THEME, "Новая заметка")
+            put(COLUMN_NOTE_TEXT, "Введите текст")
+            put(COLUMN_NOTE_LABEL, "1")
+            put(COLUMN_NOTE_TAGS, "")
+            put(COLUMN_NOTE_DELETED, false)
+        }
+
+        // Вставляем новую запись и получаем ее ID
+        val newRowId = db.insert(TABLE_NOTES, null, values)
+
+        // Закрываем базу данных
+        db.close()
+
+        // Возвращаем ID новой записи
+        return newRowId
+    }
+
+    data class Note(
+        val id: Int,
+        val theme: String,
+        val text: String?,
+        val label: String?, // Цвет может быть null, если не используется
+        val tags: String?,
+        val chData: String?,
+        val isDeleted: Boolean
+    )
+
+    fun getNoteById(id: Int): Note? {
+        val db = readableDatabase
+        val cursor: Cursor? = db.query(
+            TABLE_NOTES, // Название таблицы
+            null, // Все столбцы
+            "$COLUMN_NOTE_ID = ?", // Условие запроса
+            arrayOf(id.toString()), // Аргументы выборки
+            null, // Для GROUP BY
+            null, // Для HAVING
+            null // Для ORDER BY
+        )
+
+        cursor?.use {
+            // Проверяем, есть ли результаты запроса
+            if (it.moveToFirst()) {
+                // Получаем значения из курсора
+                val idIndex = it.getColumnIndex(COLUMN_NOTE_ID)
+                val themeIndex = it.getColumnIndex(COLUMN_NOTE_THEME)
+                val textIndex = it.getColumnIndex(COLUMN_NOTE_TEXT)
+                val labelIndex = it.getColumnIndex(COLUMN_NOTE_LABEL)
+                val tagsIndex = it.getColumnIndex(COLUMN_NOTE_TAGS)
+                val chDataIndex = it.getColumnIndex(COLUMN_NOTE_CH_DATA)
+                val deletedIndex = it.getColumnIndex(COLUMN_NOTE_DELETED)
+
+                // Создаем объект Note
+                return Note(
+                    id = if (idIndex != -1) it.getInt(idIndex) else -1,
+                    theme = if (themeIndex != -1) it.getString(themeIndex) ?: "" else "",
+                    text = if (textIndex != -1) it.getString(textIndex) else null,
+                    label = if (labelIndex != -1) it.getString(labelIndex) else null,
+                    tags = if (tagsIndex != -1) it.getString(tagsIndex) else null,
+                    chData = if (chDataIndex != -1) it.getString(chDataIndex) else null,
+                    isDeleted = if (deletedIndex != -1) it.getInt(deletedIndex) > 0 else false
+                )
+            }
+        }
+        return null // Если заметка не найдена, возвращаем null
+    }
+
+
+
+    data class Notes(
+        val id: Int,
+        val theme: String,
+        val label: String, // Цвет может быть null, если не используется
+        val text: String
+    )
+
+    fun getAllNotes(): List<Notes> {
+        val notes = mutableListOf<Notes>() // Список для хранения заметок
+
+        val db = readableDatabase
+        val cursor: Cursor? = db.query(TABLE_NOTES, null, null, null, null, null, null)
+
+        try {
+            // Проверяем, что курсор не null и содержит данные
+            if (cursor != null && cursor.moveToFirst()) {
+                val themeColumnIndex = cursor.getColumnIndex(COLUMN_NOTE_THEME)
+                val idColumnIndex = cursor.getColumnIndex(COLUMN_NOTE_ID)
+                val labelColumnIndex = cursor.getColumnIndex(COLUMN_NOTE_LABEL)
+                val textColumnIndex = cursor.getColumnIndex(COLUMN_NOTE_TEXT)
+
+                // Проверяем, что индексы столбцов существуют
+                if (themeColumnIndex != -1 && idColumnIndex != -1 && labelColumnIndex != -1) {
+                    do {
+                        val theme = cursor.getString(themeColumnIndex) // Получаем строку с темой
+                        val idNote = cursor.getInt(idColumnIndex) // Получаем ID заметки как целое число
+                        val label = cursor.getString(labelColumnIndex) // Получаем цвет метки
+                        val previewText = cursor.getString(textColumnIndex)
+                        val characterCount = previewText.length
+                        val text = if (characterCount > 30) {
+                            previewText.take(30) + "..." // Получаем первые 40 символов и добавляем "..."
+                        } else {
+                            previewText // Если текст меньше или равен 40 символам, используем его полностью
+                        }
+
+                        // Создаем объект Note и добавляем его в список
+                        notes.add(Notes(id = idNote, theme = theme, label = label, text = text))
+                    } while (cursor.moveToNext()) // Переходим к следующей строке
+                }
+            }
+        } finally {
+            cursor?.close() // Закрываем курсор в любом случае
+            db.close()      // Закрываем базу данных
+        }
+
+        return notes // Возвращаем список заметок
+    }
+
+    fun updateNote(id: Long, theme: String, text: String, label: String, tags: String, deleted: Boolean) {
+        val db = writableDatabase
+        val values = ContentValues().apply {
+            put(COLUMN_NOTE_THEME, theme)
+            put(COLUMN_NOTE_TEXT, text)
+            put(COLUMN_NOTE_LABEL, label)
+            put(COLUMN_NOTE_TAGS, tags)
+            put(COLUMN_NOTE_DELETED, deleted)
+        }
+        db.update(TABLE_NOTES, values, "$COLUMN_NOTE_ID = ?", arrayOf(id.toString()))
+        db.close()
+    }
+
+    fun updateNoteLabel(id: Int, label: String) {
+        val db = writableDatabase
+        val values = ContentValues().apply {
+            put(COLUMN_NOTE_LABEL, label)
+        }
+        db.update(TABLE_NOTES, values, "$COLUMN_NOTE_ID = ?", arrayOf(id.toString()))
+        db.close()
+    }
+
+    fun deleteNote(id: Long) {
+        val db = writableDatabase
+        db.delete(TABLE_NOTES, "$COLUMN_NOTE_ID = ?", arrayOf(id.toString()))
+        db.close()
+    }
+
+    // Функции CRUD для таблицы setting
+    fun getSorting(): Int {
+        val db = readableDatabase
+        val cursor: Cursor = db.query(TABLE_SETTING, arrayOf(COLUMN_SETTING_SORTING), null, null, null, null, null)
+        var sorting = 0
+        if (cursor.moveToFirst()) {
+            sorting = cursor.getInt(0)
+        }
+        cursor.close()
+        db.close()
+        return sorting
+    }
+
+    // Функции CRUD для таблицы labels
+    fun addLabel(name: String, color1: String, color2: String): Long {
+        val db = writableDatabase
+        val newRowId: Long
+        try {
+            val values = ContentValues().apply {
+                put(COLUMN_LABELS_NAME, name)
+                put(COLUMN_LABEL_COLOR1, color1)
+                put(COLUMN_LABEL_COLOR2, color2)
+            }
+            newRowId = db.insert(TABLE_LABELS, null, values)
+        } finally {
+            db.close()
+        }
+        return newRowId
+    }
+
+
+    fun getAllLabelsId(): List<String> {
+        val labels = mutableListOf<String>()
+        val db = readableDatabase
+        val cursor: Cursor = db.query(TABLE_LABELS, null, null, null, null, null, null)
+
+        if (cursor.moveToFirst()) {
+            do {
+                // Получаем индекс столбца ID
+                val idColumnIndex = cursor.getColumnIndex(COLUMN_LABELS_ID)
+                if (idColumnIndex != -1) {
+                    // Добавляем значение ID в список
+                    val labelId = cursor.getString(idColumnIndex)
+                    labels.add(labelId)
+                }
+            } while (cursor.moveToNext())
+        }
+
+        cursor.close()
+        db.close()
+        return labels
+    }
+
+
+
+
+    fun getAllLabels(): List<String> {
+        val labels = mutableListOf<String>()
+        val db = readableDatabase
+        val cursor: Cursor = db.query(TABLE_LABELS, null, null, null, null, null, null)
+        if (cursor.moveToFirst()) {
+            do {
+                val themeColumnIndex = cursor.getColumnIndex(COLUMN_LABELS_NAME)
+                if (themeColumnIndex != -1) {
+                    do {
+                        // Добавляем значения темы в список
+                        val label = cursor.getString(themeColumnIndex)
+                        labels.add(label)
+                    } while (cursor.moveToNext())
+                }
+            } while (cursor.moveToNext())
+        }
+        cursor.close()
+        db.close()
+        return labels
+    }
+
+    fun getLabelById(id: Int): Map<String, String?> {
+        val db = readableDatabase
+        val labelData = mutableMapOf<String, String?>()
+
+        db.query(
+            TABLE_LABELS, // Название таблицы
+            null, // Все столбцы
+            "$COLUMN_LABELS_ID = ?", // Условие запроса
+            arrayOf(id.toString()), // Аргументы выборки
+            null, // Для GROUP BY
+            null, // Для HAVING
+            null // Для ORDER BY
+        ).use { cursor ->
+            // Проверяем, есть ли результаты запроса
+            if (cursor != null && cursor.moveToFirst()) {
+                // Получаем индексы всех необходимых столбцов
+                val idIndex = cursor.getColumnIndex(COLUMN_LABELS_ID)
+                val nameIndex = cursor.getColumnIndex(COLUMN_LABELS_NAME)
+                val color1Index = cursor.getColumnIndex(COLUMN_LABEL_COLOR1)
+                val color2Index = cursor.getColumnIndex(COLUMN_LABEL_COLOR2)
+
+                // Извлекаем данные и добавляем их в карту
+                labelData[COLUMN_LABELS_ID] = if (idIndex != -1) cursor.getString(idIndex) else null
+                labelData[COLUMN_LABELS_NAME] = if (nameIndex != -1) cursor.getString(nameIndex) else null
+                labelData[COLUMN_LABEL_COLOR1] = if (color1Index != -1) cursor.getString(color1Index) else null
+                labelData[COLUMN_LABEL_COLOR2] = if (color2Index != -1) cursor.getString(color2Index) else null
+            }
+        }
+
+        return labelData // Возвращаем карту с данными метки
+    }
+
+    fun updateLabel(id: Int, name: String, color1: String, color2: String): Boolean {
+        val db = writableDatabase
+        val values = ContentValues().apply {
+            put(COLUMN_LABELS_NAME, name)
+            put(COLUMN_LABEL_COLOR1, color1)
+            put(COLUMN_LABEL_COLOR2, color2)
+        }
+
+        return try {
+            val rowsAffected = db.update(TABLE_LABELS, values, "$COLUMN_LABELS_ID = ?", arrayOf(id.toString()))
+            rowsAffected > 0 // Возвращаем true, если строки обновлены
+        } catch (e: Exception) {
+            // Обрабатывать исключение (например, логировать его)
+            e.printStackTrace()
+            false // Возвращаем false в случае ошибки
+        } finally {
+            db.close() // Закрываем базу данных
+        }
+    }
+
+    fun deleteLabel(id: Int) {
+        val db = writableDatabase
+        db.delete(TABLE_LABELS, "$COLUMN_LABELS_ID = ?", arrayOf(id.toString()))
+        db.close()
+    }
+}
