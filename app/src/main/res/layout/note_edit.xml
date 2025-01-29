@@ -9,8 +9,29 @@
     <LinearLayout
         android:id="@+id/headLayout"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal" />
+        android:layout_height="82dp"
+        android:orientation="horizontal"
+        android:padding="3dp">
+
+        <Button
+            android:id="@+id/backButton"
+            android:layout_width="80dp"
+            android:layout_height="80dp"
+            android:background="@drawable/back"
+            android:text="" />
+
+        <EditText
+            android:id="@+id/editTheme"
+            android:layout_width="0dp"
+            android:layout_height="80dp"
+            android:layout_weight="1"
+            android:background="#00FFFFFF"
+            android:gravity="center|start|left|center_vertical"
+            android:inputType="text"
+            android:text=""
+            android:textAlignment="center"
+            android:textColor="#40474f"/>
+    </LinearLayout>
 
     <!-- ScrollView для отображения заметок -->
     <ScrollView
@@ -24,23 +45,41 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:gravity="center_horizontal"
             android:orientation="vertical">
 
             <LinearLayout
                 android:id="@+id/labelLayouts"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:gravity="center_horizontal|center_vertical|end"
-                android:orientation="horizontal" />
+                android:gravity="center_vertical|end"
+                android:orientation="horizontal">
+
+
+                <TextView
+                    android:id="@+id/labelView"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:fontFamily="@font/roboto_mono"
+                    android:gravity="center"
+                    android:text=""
+                    android:textColor="#40474f"
+                    android:textAlignment="center" />
+            </LinearLayout>
 
             <EditText
                 android:id="@+id/editText"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
+                android:layout_height="match_parent"
+                android:autofillHints=""
+                android:background="@android:color/transparent"
                 android:ems="10"
                 android:fontFamily="@font/roboto_mono"
-                android:gravity="start|top"
+                android:gravity="center|start|top"
                 android:inputType="textMultiLine"
+                android:textColor="#40474f"
+                android:padding="10dp"
                 android:textFontWeight="18" />
 
         </LinearLayout>
@@ -53,7 +92,15 @@
         android:layout_height="54dp"
         android:layout_alignParentBottom="true"
         android:orientation="horizontal">
-        <!-- Здесь можно добавить кнопки или другие элементы управления -->
+
+
+        <Button
+            android:id="@+id/checkButton"
+            android:layout_width="80dp"
+            android:layout_height="80dp"
+            android:background="@drawable/check_button"
+            android:text="" />
+
     </LinearLayout>
 
     <!-- Кнопка для добавления заметки -->

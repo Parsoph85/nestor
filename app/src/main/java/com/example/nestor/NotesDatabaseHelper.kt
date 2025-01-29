@@ -79,7 +79,7 @@ class NotesDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE
         val id: Int,
         val theme: String,
         val text: String?,
-        val label: String?, // Цвет может быть null, если не используется
+        val label: String?,
         val tags: String?,
         val chData: String?,
         val isDeleted: Boolean
@@ -88,19 +88,17 @@ class NotesDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE
     fun getNoteById(id: Int): Note? {
         val db = readableDatabase
         val cursor: Cursor? = db.query(
-            TABLE_NOTES, // Название таблицы
-            null, // Все столбцы
-            "$COLUMN_NOTE_ID = ?", // Условие запроса
-            arrayOf(id.toString()), // Аргументы выборки
-            null, // Для GROUP BY
-            null, // Для HAVING
-            null // Для ORDER BY
+            TABLE_NOTES,
+            null,
+            "$COLUMN_NOTE_ID = ?",
+            arrayOf(id.toString()),
+            null,
+            null,
+            null
         )
 
         cursor?.use {
-            // Проверяем, есть ли результаты запроса
             if (it.moveToFirst()) {
-                // Получаем значения из курсора
                 val idIndex = it.getColumnIndex(COLUMN_NOTE_ID)
                 val themeIndex = it.getColumnIndex(COLUMN_NOTE_THEME)
                 val textIndex = it.getColumnIndex(COLUMN_NOTE_TEXT)
@@ -109,7 +107,6 @@ class NotesDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE
                 val chDataIndex = it.getColumnIndex(COLUMN_NOTE_CH_DATA)
                 val deletedIndex = it.getColumnIndex(COLUMN_NOTE_DELETED)
 
-                // Создаем объект Note
                 return Note(
                     id = if (idIndex != -1) it.getInt(idIndex) else -1,
                     theme = if (themeIndex != -1) it.getString(themeIndex) ?: "" else "",
@@ -121,10 +118,8 @@ class NotesDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE
                 )
             }
         }
-        return null // Если заметка не найдена, возвращаем null
+        return null
     }
-
-
 
     data class Notes(
         val id: Int,
@@ -174,6 +169,126 @@ class NotesDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE
         return notes // Возвращаем список заметок
     }
 
+
+    data class Label(
+        val id: Int,
+        val name: String,
+        val color1: String,
+        val color2: String
+    )
+
+    fun getLabelById(id: Int): Label? {
+        val db = readableDatabase
+        var cursor: Cursor? = null
+
+        // Сначала пробуем получить метку по переданному id
+        cursor = db.query(
+            TABLE_LABELS,
+            null,
+            "$COLUMN_LABELS_ID = ?",
+            arrayOf(id.toString()),
+            null,
+            null,
+            null
+        )
+
+        return try {
+            if (cursor != null && cursor.moveToFirst()) {
+                // Найдена метка с переданным id
+                val idColumnIndex = cursor.getColumnIndex(COLUMN_LABELS_ID)
+                val nameColumnIndex = cursor.getColumnIndex(COLUMN_LABELS_NAME)
+                val color1ColumnIndex = cursor.getColumnIndex(COLUMN_LABEL_COLOR1)
+                val color2ColumnIndex = cursor.getColumnIndex(COLUMN_LABEL_COLOR2)
+
+                if (idColumnIndex != -1 && nameColumnIndex != -1 &&
+                    color1ColumnIndex != -1 && color2ColumnIndex != -1) {
+
+                    // Получаем данные из курсора
+                    val labelId = cursor.getInt(idColumnIndex)
+                    val name = cursor.getString(nameColumnIndex)
+                    val color1 = cursor.getString(color1ColumnIndex)
+                    val color2 = cursor.getString(color2ColumnIndex)
+
+                    Label(id = labelId, name = name, color1 = color1, color2 = color2)
+                } else {
+                    null // Если столбцы не найдены, возвращаем null
+                }
+            } else {
+                // Если метка с переданным id не найдена, получаем метку с id = 1
+                cursor?.close() // Закрываем предыдущий курсор перед новым запросом
+                cursor = db.query(
+                    TABLE_LABELS,
+                    null,
+                    "$COLUMN_LABELS_ID = ?",
+                    arrayOf("1"), // Запрос по id = 1
+                    null,
+                    null,
+                    null
+                )
+
+                if (cursor != null && cursor.moveToFirst()) {
+                    // Найдена метка с id = 1
+                    val idColumnIndex = cursor.getColumnIndex(COLUMN_LABELS_ID)
+                    val nameColumnIndex = cursor.getColumnIndex(COLUMN_LABELS_NAME)
+                    val color1ColumnIndex = cursor.getColumnIndex(COLUMN_LABEL_COLOR1)
+                    val color2ColumnIndex = cursor.getColumnIndex(COLUMN_LABEL_COLOR2)
+
+                    if (idColumnIndex != -1 && nameColumnIndex != -1 &&
+                        color1ColumnIndex != -1 && color2ColumnIndex != -1) {
+
+                        // Получаем данные из курсора
+                        val labelId = cursor.getInt(idColumnIndex)
+                        val name = cursor.getString(nameColumnIndex)
+                        val color1 = cursor.getString(color1ColumnIndex)
+                        val color2 = cursor.getString(color2ColumnIndex)
+
+                        Label(id = labelId, name = name, color1 = color1, color2 = color2)
+                    } else {
+                        null // Если столбцы не найдены, возвращаем null
+                    }
+                } else {
+                    null // Если метка с id = 1 тоже не найдена
+                }
+            }
+        } finally {
+            cursor?.close()
+            db.close()
+        }
+    }
+
+
+    fun getAllLabelsId(): List<String> {
+        val labels = mutableListOf<String>()
+        val db = readableDatabase
+        val cursor: Cursor = db.query(TABLE_LABELS, null, null, null, null, null, null)
+
+        if (cursor.moveToFirst()) {
+            do {
+                // Получаем индекс столбца ID
+                val idColumnIndex = cursor.getColumnIndex(COLUMN_LABELS_ID)
+                if (idColumnIndex != -1) {
+                    // Добавляем значение ID в список
+                    val labelId = cursor.getString(idColumnIndex)
+                    labels.add(labelId)
+                }
+            } while (cursor.moveToNext())
+        }
+
+        cursor.close()
+        db.close()
+        return labels
+    }
+
+
+
+
+
+
+
+
+
+
+
     fun updateNote(id: Long, theme: String, text: String, label: String, tags: String, deleted: Boolean) {
         val db = writableDatabase
         val values = ContentValues().apply {
@@ -187,7 +302,7 @@ class NotesDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE
         db.close()
     }
 
-    fun updateNoteLabel(id: Int, label: String) {
+    fun updateNoteLabel(id: Long, label: String) {
         val db = writableDatabase
         val values = ContentValues().apply {
             put(COLUMN_NOTE_LABEL, label)
@@ -233,31 +348,16 @@ class NotesDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE
     }
 
 
-    fun getAllLabelsId(): List<String> {
-        val labels = mutableListOf<String>()
-        val db = readableDatabase
-        val cursor: Cursor = db.query(TABLE_LABELS, null, null, null, null, null, null)
-
-        if (cursor.moveToFirst()) {
-            do {
-                // Получаем индекс столбца ID
-                val idColumnIndex = cursor.getColumnIndex(COLUMN_LABELS_ID)
-                if (idColumnIndex != -1) {
-                    // Добавляем значение ID в список
-                    val labelId = cursor.getString(idColumnIndex)
-                    labels.add(labelId)
-                }
-            } while (cursor.moveToNext())
-        }
-
-        cursor.close()
-        db.close()
-        return labels
-    }
 
 
 
 
+    data class Labels(
+        val id: Int,
+        val name: String,
+        val color1: String,
+        val color2: String
+    )
     fun getAllLabels(): List<String> {
         val labels = mutableListOf<String>()
         val db = readableDatabase
@@ -279,37 +379,7 @@ class NotesDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE
         return labels
     }
 
-    fun getLabelById(id: Int): Map<String, String?> {
-        val db = readableDatabase
-        val labelData = mutableMapOf<String, String?>()
 
-        db.query(
-            TABLE_LABELS, // Название таблицы
-            null, // Все столбцы
-            "$COLUMN_LABELS_ID = ?", // Условие запроса
-            arrayOf(id.toString()), // Аргументы выборки
-            null, // Для GROUP BY
-            null, // Для HAVING
-            null // Для ORDER BY
-        ).use { cursor ->
-            // Проверяем, есть ли результаты запроса
-            if (cursor != null && cursor.moveToFirst()) {
-                // Получаем индексы всех необходимых столбцов
-                val idIndex = cursor.getColumnIndex(COLUMN_LABELS_ID)
-                val nameIndex = cursor.getColumnIndex(COLUMN_LABELS_NAME)
-                val color1Index = cursor.getColumnIndex(COLUMN_LABEL_COLOR1)
-                val color2Index = cursor.getColumnIndex(COLUMN_LABEL_COLOR2)
-
-                // Извлекаем данные и добавляем их в карту
-                labelData[COLUMN_LABELS_ID] = if (idIndex != -1) cursor.getString(idIndex) else null
-                labelData[COLUMN_LABELS_NAME] = if (nameIndex != -1) cursor.getString(nameIndex) else null
-                labelData[COLUMN_LABEL_COLOR1] = if (color1Index != -1) cursor.getString(color1Index) else null
-                labelData[COLUMN_LABEL_COLOR2] = if (color2Index != -1) cursor.getString(color2Index) else null
-            }
-        }
-
-        return labelData // Возвращаем карту с данными метки
-    }
 
     fun updateLabel(id: Int, name: String, color1: String, color2: String): Boolean {
         val db = writableDatabase

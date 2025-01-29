@@ -5,272 +5,147 @@ import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Intent
 import android.graphics.Color
-import android.graphics.drawable.ColorDrawable
-import android.os.Bundle
-import android.util.DisplayMetrics
-import android.widget.Button
-import android.widget.LinearLayout
-import androidx.appcompat.app.AppCompatActivity
 import android.graphics.drawable.GradientDrawable
-import android.text.Spannable
-import android.text.SpannableStringBuilder
-import androidx.core.content.res.ResourcesCompat
-import android.widget.EditText
-import android.view.Gravity
-import android.view.View
-import android.widget.CheckBox
-import android.text.Editable
+import android.os.Bundle
+import android.text.InputFilter
 import android.text.SpannableString
+import android.text.SpannableStringBuilder
 import android.text.Spanned
 import android.text.method.LinkMovementMethod
 import android.text.style.ClickableSpan
-import android.text.style.ForegroundColorSpan
-import android.util.Log
+import android.util.DisplayMetrics
+import android.view.Gravity
+import android.view.View
+import android.widget.Button
+import android.widget.CheckBox
+import android.widget.EditText
+import android.widget.LinearLayout
+import android.widget.TextView
+import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.res.ResourcesCompat
+import com.example.nestor.MainActivity.Companion.REQUEST_CODE
+import kotlin.properties.Delegates
 
 
 class NoteEdit : AppCompatActivity() {
     private lateinit var labelLayouts: LinearLayout
     private lateinit var headLayout: LinearLayout
+    private lateinit var backButton: Button
     private lateinit var editTheme: EditText
     private lateinit var editText: EditText
     private lateinit var bottomLayout: LinearLayout
-    private lateinit var notesDatabaseHelper: NotesDatabaseHelper // Предполагается, что у вас есть этот класс
-    private var themeId: Int = 0 // Инициализируйте по необходимости
-    private var label: String = "1" // Инициализируйте по необходимости
-    companion object {const val COLUMN_LABELS_ID = "id"
-    const val COLUMN_LABELS_NAME = "name"
-    const val COLUMN_LABEL_COLOR1 = "color1"
-    const val COLUMN_LABEL_COLOR2 = "color2"}
+    private lateinit var checkButton: Button
+    private lateinit var labelView: TextView
+    private lateinit var notesDatabaseHelper: NotesDatabaseHelper
+    private var noteIdDb: Int = 1
+    private var noteLabelDb: Int by Delegates.observable(1) { _, _, newValue -> changeLabel(newValue)}
+
 
     @SuppressLint("SetTextI18n")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.note_edit)
 
-        // Получаем размеры экрана
+
         val displayMetrics = DisplayMetrics()
         windowManager.defaultDisplay.getMetrics(displayMetrics)
-
         val width = displayMetrics.widthPixels
         val height = displayMetrics.heightPixels
         val elementHeight = (height / 10)
 
+
         notesDatabaseHelper = NotesDatabaseHelper(this)
         headLayout = findViewById(R.id.headLayout)
-        labelLayouts = findViewById(R.id.labelLayouts) // Получаем ссылку на LinearLayout для кнопок
+        labelLayouts = findViewById(R.id.labelLayouts)
         editText = findViewById(R.id.editText)
         bottomLayout = findViewById(R.id.bottomLayout)
+        editTheme = findViewById(R.id.editTheme)
+        backButton = findViewById(R.id.backButton)
+        checkButton = findViewById(R.id.checkButton)
+        labelView = findViewById(R.id.labelView)
 
-        // Получите переданный параметр
+
         val theme = intent.getStringExtra("EXTRA_THEME")
-        themeId = theme?.toIntOrNull() ?: 1 // Если theme равно null, установим значение по умолчанию 1
+        noteIdDb = theme?.toInt() ?: 1
 
 
-        val note = notesDatabaseHelper.getNoteById(themeId)
+        val note = notesDatabaseHelper.getNoteById(noteIdDb)
+        val noteThemeDb: String = note?.theme ?: "Без темы..."
+        val noteTextDb: String = note?.text.toString()
+        noteLabelDb = note?.label?.toInt() ?: 1
 
-        // Задаем переменные, которые не могут быть null
-        val noteTheme: String
-        val noteText: String
-        val labelName: String? // Объявление переменной labelName вне условной конструкции
-        val labelColor: Int
-
-        if (note != null) {
-            // Получаем цвет метки (может быть null)
-            label = note.label?.toString() ?: "" // Замените toString на безопасный вызов, чтобы избежать потенциального NPE
-            val labelId: Int = label?.toInt() ?: -1 // Если label не может быть преобразован в Int, используем значение по умолчанию (-1)
+        val labelDataDb = notesDatabaseHelper.getLabelById(noteLabelDb)
+        val labelNameDb: String = labelDataDb?.name ?: "Без метки..."
+        val labelColor1Db: String = labelDataDb?.color1 ?: "#ffffff"
 
 
-            if (labelId != -1) {
+        val backButtonParams = backButton.layoutParams as LinearLayout.LayoutParams
+        backButtonParams.width = (height / 15)
+        backButtonParams.height = (height / 15)
+        backButton.layoutParams = backButtonParams
 
-                val labelData = notesDatabaseHelper.getLabelById(labelId)
-                val lName = labelData[COLUMN_LABELS_NAME]
-                val labelColor = labelData[COLUMN_LABEL_COLOR1] ?: "#FFFFFF" // Используем цвет по умолчанию, если значение null
-                val color = Color.parseColor(labelColor)
-                noteTheme = note.theme ?: "" // Используем безопасный вызов, если theme тоже может быть null
-                noteText = note.text ?: "" // Используем безопасный вызов для text
-                labelName = lName?.toString()
+        backButton.setOnClickListener {
+            finish()
+        }
 
+
+        val editThemeParams = editTheme.layoutParams as LinearLayout.LayoutParams
+        editThemeParams.width = width - elementHeight * 8 / 10
+        editThemeParams.height = height / 10
+        editTheme.layoutParams = editThemeParams
+        editTheme.typeface = ResourcesCompat.getFont(this, R.font.roboto_mono)
+        editTheme.setText(noteThemeDb)
+        editTheme.textSize = (height / 30).toFloat() / resources.displayMetrics.scaledDensity
+        editTheme.filters = arrayOf(InputFilter { source, start, end, dest, dstart, dend ->
+            val currentText = dest.toString().trim()
+            val newLength = currentText.length + source.length - (dend - dstart)
+
+            if (newLength > 20) {
+                val excess = (currentText + source.toString()).take(20)
+                excess.substringAfterLast(" ").take(20)
             } else {
-                noteTheme = ""
-                noteText = ""
-                labelName = ""
-                labelColor = 0
+                null
             }
-        } else {
-            noteTheme = ""
-            noteText = ""
-            labelName = ""
-            labelColor = 0
+        })
+
+
+        val labelViewParams = labelView.layoutParams as LinearLayout.LayoutParams
+        labelViewParams.width = (width / 2)
+        labelViewParams.height = (height / 20)
+        labelView.layoutParams = labelViewParams
+        labelView.text = labelNameDb
+        labelView.textSize = (height / 40).toFloat() / resources.displayMetrics.scaledDensity
+
+        val drawable = GradientDrawable().apply {
+            shape = GradientDrawable.RECTANGLE
+            setColor(Color.parseColor(labelColor1Db))
+            cornerRadius = (width * 0.05f).coerceAtLeast(0f)}
+        labelView.background = drawable
+        labelView.typeface = ResourcesCompat.getFont(this, R.font.roboto_mono)
+
+        labelView.setOnClickListener {
+            LabelPopupMenu(this, it, notesDatabaseHelper).show()
         }
 
-        editTheme = EditText(this).apply {
 
-            // Задаем параметры макета для EditText
-            layoutParams = LinearLayout.LayoutParams(
-                width - elementHeight, // Ширина - заполняет доступное пространство
-                elementHeight // Высота - устанавливаем, например, 100 пикселей
-            )
+        editText.setText(noteTextDb)
+        editText.typeface = ResourcesCompat.getFont(this, R.font.roboto_mono)
+        editText.textSize = (height / 35).toFloat() / resources.displayMetrics.scaledDensity
+        editText.movementMethod = LinkMovementMethod.getInstance()
 
-            // Устанавливаем размер шрифта
-            textSize = 28f // Например, размер шрифта 18sp
 
-            // Устанавливаем цвет текста
-            setTextColor(Color.parseColor("#40474f")) // Темно-серый цвет
 
-            // Установка подсказки (hint)
-            hint = "Введите текст здесь" // Подсказка для пользователя
-            setText(noteTheme) // Вставка текста
+        val checkButtonParams = checkButton.layoutParams as LinearLayout.LayoutParams
+        checkButtonParams.width = elementHeight * 6 / 10
+        checkButtonParams.height = elementHeight * 6 / 10
+        checkButton.layoutParams = checkButtonParams
 
-            // Устанавливаем тип шрифта (если нужно)
-            val typeface = ResourcesCompat.getFont(context, R.font.roboto_mono)
-            setTypeface(typeface)
-            // Убираем границы
-            background = null // Устанавливаем прозрачный фон
+        checkButton.setOnClickListener {
+            addCheckbox()
         }
-
-        val backButton = Button(this).apply {
-            text = ""
-            layoutParams = LinearLayout.LayoutParams(
-                elementHeight /2, // Ширина в пикселях (или LinearLayout.LayoutParams.WRAP_CONTENT, MATCH_PARENT)
-                elementHeight /2  // Высота в пикселях (или LinearLayout.LayoutParams.WRAP_CONTENT, MATCH_PARENT)
-            ).apply {
-                // Задаем отступы (левый, верхний, правый, нижний)
-                setMargins(elementHeight / 4, 0, elementHeight / 4, 0) // Отступы между кнопками
-            }
-
-            // Создаем фоновый drawable с закругленными углами
-            val drawable = GradientDrawable().apply {
-                shape = GradientDrawable.RECTANGLE
-                setColor(color) // Устанавливаем цвет кнопки
-                cornerRadius = (width * 0.05f).coerceAtLeast(0f) // Устанавливаем радиус закругления
-            }
-
-            background = drawable // Применяем фоновый drawable к кнопке
-            val typeface = ResourcesCompat.getFont(context, R.font.roboto_mono)
-            setTypeface(typeface)
-
-            setBackgroundResource(R.drawable.back) // Замените your_background_image на имя вашего изображения
-            setOnClickListener {
-                finish()
-
-
-            }
-        }
-        headLayout.addView(backButton)
-
-        // Добавляем EditText в родительский LinearLayout
-        headLayout.addView(editTheme)
-
-
-
-        val labelButton = Button(this).apply {
-            // Устанавливаем текст кнопки
-            text = "${labelName ?: "Без имени"}" // Добавлено значение по умолчанию, если labelName равно null
-
-            // Устанавливаем параметры макета
-            layoutParams = LinearLayout.LayoutParams(
-                width / 3, // Ширина в пикселях (или LinearLayout.LayoutParams.WRAP_CONTENT, MATCH_PARENT)
-                elementHeight / 3  // Высота в пикселях (или LinearLayout.LayoutParams.WRAP_CONTENT, MATCH_PARENT)
-            ).apply {
-                // Задаем отступы (левый, верхний, правый, нижний)
-                setMargins(0, 0, width / 10, 0) // Отступы: 0 слева, 0 сверху, 10 справа, 0 снизу
-            }
-
-            // Создаем фоновый drawable с закругленными углами
-            val drawable = GradientDrawable().apply {
-                shape = GradientDrawable.RECTANGLE
-                setColor(color) // Устанавливаем цвет кнопки
-                cornerRadius = (width * 0.05f).coerceAtLeast(0f) // Устанавливаем радиус закругления
-            }
-
-            // Применяем фоновый drawable к кнопке
-            background = drawable
-
-            // Устанавливаем размер и цвет шрифта
-            textSize = 12f // Размер шрифта (например, 16sp)
-            setTextColor(Color.parseColor("#40474f")) // Цвет текста
-
-            // Установка выравнивания текста по левому краю
-            textAlignment = View.TEXT_ALIGNMENT_TEXT_START // Выравнивание текста по левому краю
-
-            // Устанавливаем тип шрифта
-            val typeface = ResourcesCompat.getFont(context, R.font.roboto_mono)
-            setTypeface(typeface)
-
-            // Устанавливаем отступы внутри кнопки
-            setPadding(5, 0, 5, 0) // Отступы: 5 слева, 0 сверху, 5 справа, 0 снизу
-            isAllCaps = false   // Задаем флаг "все заглавные" с использованием синтаксиса свойств
-
-            // Устанавливаем выравнивание кнопки по правому краю
-            layoutParams = (layoutParams as LinearLayout.LayoutParams).apply {
-                gravity = Gravity.END // Выравнивание кнопки по правому краю
-            }
-
-            // Устанавливаем обработчик нажатия
-            setOnClickListener {
-                // Создайте Intent для открытия новой Activity
-                val intent = Intent(context, LabelEdit::class.java).apply {
-                    // Передайте параметр
-                    if (note != null) {
-                        putExtra("EXTRA_THEME", themeId)
-                    } // измените note.theme на нужный вам параметр
-                }
-                // Запустите новую Activity
-                context.startActivity(intent)
-            }
-        }
-        labelLayouts.addView(labelButton)
-
-        editText.setText("${noteText}")
-        editText.background = null
-
-
-        val checkBox = CheckBox(this)
-        checkBox.layout(0, 0, 100, 100) // Установите размеры для чекбокса
-        checkBox.measure(0, 0) // Необходима для получения ширины
-
-        val checkBoxButton = Button(this).apply {
-            text = ""
-            layoutParams = LinearLayout.LayoutParams(
-                elementHeight /2, // Ширина в пикселях (или LinearLayout.LayoutParams.WRAP_CONTENT, MATCH_PARENT)
-                elementHeight /2  // Высота в пикселях (или LinearLayout.LayoutParams.WRAP_CONTENT, MATCH_PARENT)
-            ).apply {
-                // Задаем отступы (левый, верхний, правый, нижний)
-                setMargins(elementHeight / 4, elementHeight / 8, elementHeight / 4, elementHeight / 8) // Отступы между кнопками
-            }
-
-            // Создаем фоновый drawable с закругленными углами
-            val drawable = GradientDrawable().apply {
-                shape = GradientDrawable.RECTANGLE
-                setColor(color) // Устанавливаем цвет кнопки
-                cornerRadius = (width * 0.05f).coerceAtLeast(0f) // Устанавливаем радиус закругления
-            }
-
-            background = drawable // Применяем фоновый drawable к кнопке
-            val typeface = ResourcesCompat.getFont(context, R.font.roboto_mono)
-            setTypeface(typeface)
-
-            setBackgroundResource(R.drawable.check_button) // Замените your_background_image на имя вашего изображения
-            setOnClickListener {
-                addCheckbox()
-            }
-            // Разрешаем ссылки внутри EditText
-            editText.movementMethod = LinkMovementMethod.getInstance()
-        }
-        bottomLayout.addView(checkBoxButton)
-
-
-
-
-
-
-
-
-
-
-
-
     }
+
+
     private fun addCheckbox() {
         val cursorPosition = editText.selectionStart
         val checkboxSpan = createCheckboxSpan()
@@ -304,7 +179,6 @@ class NoteEdit : AppCompatActivity() {
                     editText.setText(newText)
                     editText.setSelection(checkboxPosition) // Устанавливаем курсор на место чекбокса
 
-                    // Убедитесь, что ClickableSpan обновлен
                     updateClickableSpan()
                 }
             }
@@ -338,15 +212,40 @@ class NoteEdit : AppCompatActivity() {
         editText.text = spannable // Присваиваем изменяемый текст обратно в EditText
     }
 
+
+    private fun changeLabel(newLabelId: Int) {
+        val newLabelData = notesDatabaseHelper.getLabelById(newLabelId)
+        val newLabelName: String = newLabelData?.name ?: "Без метки..."
+        val newLabelColor1: String = newLabelData?.color1 ?: "#ffffff"
+        //labelButton.setBackgroundColor(Color.parseColor(newLabelColor1))
+        //labelButton.text = newLabelName
+    }
+
+
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == REQUEST_CODE && resultCode == Activity.RESULT_OK) {
+            val dataEcho = data?.getStringExtra("RESULT_LABEL")
+            noteLabelDb = dataEcho?.toInt() ?: 1
+            // Код для обновления
+        }
+    }
+
+
+
     override fun onDestroy() {
         super.onDestroy()
-        val enteredTheme  = editTheme.text.toString()
+        var enteredTheme  = editTheme.text.toString()
         val enteredText  = editText.text.toString()
+        if (enteredTheme == "Без темы..."){
+            enteredTheme = enteredText.take(26) + "..."
+        }
 
-        notesDatabaseHelper.updateNote(themeId.toLong(), enteredTheme, enteredText, label.toString(), "",false)
+        //notesDatabaseHelper.updateNote(noteIdDb.toLong(), enteredTheme, enteredText, noteLabelDb.toString(), "",false)
 
         val resultIntent = Intent().apply {
-            putExtra("RESULT_KEY", 1) // Передайте необходимые данные
+            putExtra("RESULT_KEY", noteIdDb) // Передайте необходимые данные
         }
         setResult(Activity.RESULT_OK, resultIntent)
         // добавить передачу сигнала на обновление и закрытие окна

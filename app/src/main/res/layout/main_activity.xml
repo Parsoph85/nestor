@@ -24,11 +24,46 @@
             <LinearLayout
                 android:id="@+id/headLayout"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal" />
+                android:layout_height="82dp"
+                android:orientation="horizontal"
+                android:padding="3dp">
+
+                <TextView
+                    android:id="@+id/mainLabel"
+                    android:layout_width="0dp"
+                    android:layout_height="80dp"
+                    android:layout_gravity="center_horizontal|center_vertical"
+                    android:layout_weight="1"
+                    android:padding="6sp"
+                    android:text="Заметки"
+                    android:textAlignment="center"
+                    android:textColor="#40474f"
+                    android:textSize="26sp" />
+
+                <Button
+                    android:id="@+id/addButton"
+                    android:layout_width="80dp"
+                    android:layout_height="80dp"
+                    android:background="@drawable/add"
+                    android:text="" />
+
+                <Button
+                    android:id="@+id/settingButton"
+                    android:layout_width="80dp"
+                    android:layout_height="80dp"
+                    android:background="@drawable/down_arrow"
+                    android:text="" />
+
+
+
+
+            </LinearLayout>
+
+
+
 
             <LinearLayout
-                android:id="@+id/buttonsLayouts"
+                android:id="@+id/buttonsLayout"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:gravity="center_horizontal"

@@ -19,7 +19,7 @@
             </intent-filter>
         </activity>
         <activity android:name=".NoteEdit" />
-        <activity android:name=".LabelEdit" />
+      <!--  <activity android:name=".LabelEdit" /> -->
 
         <meta-data
             android:name="preloaded_fonts"
