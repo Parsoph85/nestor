@@ -9,9 +9,10 @@ import android.widget.Button
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
+import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.res.ResourcesCompat
-import kotlin.properties.Delegates
 
 data class NoteMin(
     val id: Int,
@@ -28,27 +29,32 @@ class MainActivity : AppCompatActivity() {
     private lateinit var settingButton: Button
     private lateinit var notesDatabaseHelper: NotesDatabaseHelper
     private lateinit var imageLogo: ImageView
-
+    private lateinit var resultLauncher: ActivityResultLauncher<Intent>
     private var width: Int = 0
+    private var height: Int = 0
     private var elementHeight: Int = 0
     companion object {const val REQUEST_CODE = 1
     }
-    private var reloadFlag: Int by Delegates.observable(1) { _, _, newValue -> reloadNotes()}
-
 
     @SuppressLint("SetTextI18n")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.main_activity)
 
-        // Получаем размеры экрана
+
+        // Метрики экрана
         val displayMetrics = DisplayMetrics()
-        windowManager.defaultDisplay.getMetrics(displayMetrics)
+        val display = windowManager.currentWindowMetrics
+        display.bounds.apply {
+            displayMetrics.widthPixels = width()
+            displayMetrics.heightPixels = height()
+        }
+        width = displayMetrics.widthPixels
+        height = displayMetrics.heightPixels
+        elementHeight = height / 10
 
-        width = displayMetrics.widthPixels  //720     1080
-        val height = displayMetrics.heightPixels //1600  2274
-        elementHeight = (height / 10) //160
 
+        // Инициализация элементов
         notesDatabaseHelper = NotesDatabaseHelper(this)
         buttonsLayout = findViewById(R.id.buttonsLayout)
         headLayout = findViewById(R.id.headLayout)
@@ -58,7 +64,15 @@ class MainActivity : AppCompatActivity() {
         settingButton = findViewById(R.id.settingButton)
 
 
-        // вставить лого красиво надо!!!!!
+        // Получение отклика
+        resultLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            if (result.resultCode == Activity.RESULT_OK) {
+                reloadNotes()
+            }
+        }
+
+
+        // лого
         val imageLogoParams = imageLogo.layoutParams as LinearLayout.LayoutParams
         imageLogoParams.width = (height / 20)
         imageLogoParams.height = (height / 20)
@@ -66,14 +80,14 @@ class MainActivity : AppCompatActivity() {
         imageLogoParams.setMargins(width / 100, height / 180, width / 100, 0)
 
 
-
+        // Заголовок
         val mainLabelParams = mainLabel.layoutParams as LinearLayout.LayoutParams
         mainLabelParams.width = width - 2 * elementHeight * 8 / 10
         mainLabelParams.height = elementHeight * 8 / 10
         mainLabel.layoutParams = mainLabelParams
         mainLabel.typeface = ResourcesCompat.getFont(this, R.font.roboto_mono)
 
-
+        // Добавить
         val addButtonParams = addButton.layoutParams as LinearLayout.LayoutParams
         addButtonParams.width = (height / 20)
         addButtonParams.height = (height / 20)
@@ -82,14 +96,11 @@ class MainActivity : AppCompatActivity() {
 
         addButton.setOnClickListener {
             val newNote = notesDatabaseHelper.addNote()
-            val intent = Intent(this,  NoteEdit::class.java).apply {
-                // Передайте параметр
-                putExtra("EXTRA_THEME", newNote.toString()) // измените note.theme на нужный вам параметр
-            }
-            startActivity(intent)  // Запустите новую Activity
+            startAnotherActivity(newNote.toInt())
         }
 
 
+        // Меню
         val settingButtonParams = settingButton.layoutParams as LinearLayout.LayoutParams
         settingButtonParams.width = (height / 20)
         settingButtonParams.height = (height / 20)
@@ -100,6 +111,7 @@ class MainActivity : AppCompatActivity() {
             }
 
 
+        // Кнопки тем
         val notes = notesDatabaseHelper.getAllNotes()
 
         for (note in notes) {
@@ -109,12 +121,13 @@ class MainActivity : AppCompatActivity() {
                 text = note.text,
                 label = note.label.toInt()
             )
-            val button = createNoteButton(noteItem, this, width, elementHeight)
+            val button = createNoteButton(noteItem, this, width, elementHeight, resultLauncher)
             buttonsLayout.addView(button)
         }
     }
 
 
+    // Функция перезагрузки тем - Обновление
     private fun reloadNotes() {
         buttonsLayout.removeAllViews()
         val notes = notesDatabaseHelper.getAllNotes()
@@ -125,21 +138,20 @@ class MainActivity : AppCompatActivity() {
                 text = note.text,
                 label = note.label.toInt()
             )
-            val button = createNoteButton(noteItem, this, width, elementHeight)
+            val button = createNoteButton(noteItem, this, width, elementHeight, resultLauncher)
             buttonsLayout.addView(button)
         }
     }
 
-    @Deprecated("")
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
 
-        if (requestCode == REQUEST_CODE && resultCode == Activity.RESULT_OK) {
-            val updatedData = data?.getStringExtra("RESULT_KEY") //передает нулл почему-то. потом проверим
-            println("RESULTES as - $updatedData")
-            // Перезагружаем заметки для обновления интерфейса
-            reloadNotes()
+    // Функция запуска редактора
+    private fun startAnotherActivity(newNote: Int) {
+        val intent = Intent(this, NoteEdit::class.java).apply {
+            putExtra("EXTRA_THEME", newNote.toString())
+            putExtra("EXTRA_HEIGHT", height)
+            putExtra("EXTRA_WIDTH", width)
         }
-        reloadNotes()
+        resultLauncher.launch(intent)
     }
+
 }

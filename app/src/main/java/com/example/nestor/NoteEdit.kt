@@ -13,7 +13,6 @@ import android.text.SpannableStringBuilder
 import android.text.Spanned
 import android.text.method.LinkMovementMethod
 import android.text.style.ClickableSpan
-import android.util.DisplayMetrics
 import android.view.LayoutInflater
 import android.view.View
 import android.widget.Button
@@ -22,6 +21,7 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.res.ResourcesCompat
@@ -56,12 +56,6 @@ class NoteEdit : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.note_edit)
 
-        // Получение метрик
-
-        val displayMetrics = DisplayMetrics()
-        windowManager.defaultDisplay.getMetrics(displayMetrics)
-        width = displayMetrics.widthPixels
-        height = displayMetrics.heightPixels
 
 
         // Инициализация объектов
@@ -80,12 +74,19 @@ class NoteEdit : AppCompatActivity() {
         labelView = findViewById(R.id.labelView)
         exportButton = findViewById(R.id.exportButton)
 
+        val backCallback = object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                saveNoteAndExit()
+            }
+        }
+        onBackPressedDispatcher.addCallback(this, backCallback)
+
 
         // Получение ID заметки
 
-        val theme = intent.getStringExtra("EXTRA_THEME")
-        noteIdDb = theme?.toInt() ?: 1
-        println("RESULTES - $noteIdDb")
+        height = intent.getStringExtra("EXTRA_HEIGHT")?.toInt() ?: 1600
+        width = intent.getStringExtra("EXTRA_WIDTH")?.toInt() ?: 700
+        noteIdDb = intent.getStringExtra("EXTRA_THEME")?.toInt() ?: 1
 
 
         // Получение данных из БД: заметка ...
@@ -112,8 +113,7 @@ class NoteEdit : AppCompatActivity() {
         backButtonParams.setMargins(width / 20, 0, width / 100, 0)
 
         backButton.setOnClickListener {
-            saveNoteAnd()
-            finish()
+            saveNoteAndExit()
         }
 
 
@@ -125,8 +125,8 @@ class NoteEdit : AppCompatActivity() {
         editTheme.layoutParams = editThemeParams
         editTheme.typeface = ResourcesCompat.getFont(this, R.font.roboto_mono)
         editTheme.setText(noteThemeDb)
-        editTheme.textSize = (height / 30).toFloat() / resources.displayMetrics.scaledDensity
-        editTheme.filters = arrayOf(InputFilter { source, start, end, dest, dstart, dend ->
+        editTheme.textSize = (height / 80).toFloat() // resources.configuration.fontScale
+        editTheme.filters = arrayOf(InputFilter { source, _, _, dest, dstart, dend ->
             val currentText = dest.toString().trim()
             val newLength = currentText.length + source.length - (dend - dstart)
 
@@ -157,7 +157,7 @@ class NoteEdit : AppCompatActivity() {
         labelViewParams.height = (height / 20)
         labelView.layoutParams = labelViewParams
         labelView.text = labelNameDb
-        labelView.textSize = (height / 40).toFloat() / resources.displayMetrics.scaledDensity
+        labelView.textSize = (height / 90).toFloat() // resources.configuration.fontScale
 
         val drawable = GradientDrawable().apply {
             shape = GradientDrawable.RECTANGLE
@@ -176,7 +176,7 @@ class NoteEdit : AppCompatActivity() {
         editText.setText(noteTextDb)
         updateClickableSpan()
         editText.typeface = ResourcesCompat.getFont(this, R.font.roboto_mono)
-        editText.textSize = (height / 35).toFloat() / resources.displayMetrics.scaledDensity
+        editText.textSize = (height / 80).toFloat() // resources.configuration.fontScale
         editText.movementMethod = LinkMovementMethod.getInstance()
 
 
@@ -244,7 +244,7 @@ class NoteEdit : AppCompatActivity() {
 
         exportButton.setOnClickListener {
             val enteredTheme = editTheme.text.toString()
-            var enteredText = editText.text.toString()
+            val enteredText = editText.text.toString()
 
             val fileName = "note_${System.currentTimeMillis()}.txt" // Уникальное имя файла
             val fileContents = "Тема: $enteredTheme\nТекст: $enteredText"
@@ -345,43 +345,41 @@ class NoteEdit : AppCompatActivity() {
     }
 
 
-
+    @Deprecated("")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
         if (requestCode == REQUEST_CODE && resultCode == Activity.RESULT_OK) {
             val dataEcho = data?.getStringExtra("RESULT_LABEL")
             println("DATAECHO - $dataEcho")
         }
+
+
     }
 
 
-    @Deprecated("")
-    override fun onBackPressed() {
-        // Сохраняем данные
-        saveNoteAnd()
-
-        // Вызываем super, чтобы выполнить стандартное действие
-        super.onBackPressed()
-    }
-
-    private fun saveNoteAnd() {
+    // Сохранение заметки и выход
+    private fun saveNoteAndExit() {
         val enteredTheme = editTheme.text.toString()
         var enteredText = editText.text.toString()
 
         var modifiedTheme = enteredTheme
         if ((enteredTheme == "Новая заметка" && enteredText != "Введите текст") || enteredTheme == "") {
-            if (enteredText == ""){enteredText = "Пусто. А жаль."}
+            if (enteredText == "") {
+                enteredText = "Пусто. А жаль."
+            }
             modifiedTheme = enteredText.take(26) + "..."
         }
 
         notesDatabaseHelper.updateNote(noteIdDb.toLong(), modifiedTheme, enteredText, noteLabelDb.toString(), "", false)
 
+        // Создаем Intent для передачи результата
         val resultIntent = Intent().apply {
             putExtra("RESULT_KEY", noteIdDb) // Передаем необходимые данные
         }
-        println("RESULTES to - $noteIdDb")
-        setResult(Activity.RESULT_OK, resultIntent) // Устанавливаем результат
+        setResult(Activity.RESULT_OK, resultIntent)
+        finish()
     }
+
 
 
     // Всплывающее меню выбора метки

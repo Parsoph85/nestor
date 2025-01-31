@@ -1,6 +1,5 @@
 package com.example.nestor
 
-import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.graphics.Color
@@ -13,21 +12,18 @@ import android.text.style.StyleSpan
 import android.view.Gravity
 import android.widget.Button
 import android.widget.LinearLayout
+import androidx.activity.result.ActivityResultLauncher
 import androidx.core.content.res.ResourcesCompat
-import com.example.nestor.MainActivity.Companion.REQUEST_CODE
 
-fun createNoteButton(note: NoteMin, context: Context, width: Int, elementHeight: Int): Button {
+fun createNoteButton(note: NoteMin, context: Context, width: Int, elementHeight: Int, resultLauncher: ActivityResultLauncher<Intent>): Button {
     val button = Button(context).apply {
         val noteId = note.id
         val noteThemeDb = note.theme
         val noteTextDb = note.text
         val noteLabelDb = note.label
         val notesDatabaseHelper = NotesDatabaseHelper(context)
-
         val labelDataDb = noteLabelDb?.let { notesDatabaseHelper.getLabelById(it) }
-        val labelNameDb: String = labelDataDb?.name ?: "Без метки..."
         val labelColor1Db: String = labelDataDb?.color1 ?: "#ffffff"
-        val labelColor2Db: String = labelDataDb?.color2 ?: "#ced9f2"
 
         // Создаем SpannableString для установки разных шрифтов
         val spannableString = SpannableString("$noteThemeDb\n$noteTextDb")  // Создаем SpannableString для установки разных шрифтов
@@ -76,14 +72,16 @@ fun createNoteButton(note: NoteMin, context: Context, width: Int, elementHeight:
         }
 
         background = drawable
-        setTypeface(ResourcesCompat.getFont(context, R.font.roboto_mono))
+        typeface = ResourcesCompat.getFont(context, R.font.roboto_mono)
         setTextColor(Color.parseColor("#40474f"))
 
         setOnClickListener {
-            val intent = Intent(context, NoteEdit::class.java).apply {
-                putExtra("EXTRA_THEME", noteId.toString())
-            }
-            (context as Activity).startActivityForResult(intent, REQUEST_CODE)
+                val intent = Intent(context, NoteEdit::class.java).apply {
+                    putExtra("EXTRA_THEME", noteId.toString())
+                    putExtra("EXTRA_HEIGHT", height)
+                    putExtra("EXTRA_WIDTH", width)
+                }
+                resultLauncher.launch(intent)
         }
     }
     return button
