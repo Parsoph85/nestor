@@ -6,6 +6,37 @@ import android.database.Cursor
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
 
+data class Labels(
+    val id: Int,
+    val name: String,
+    val color1: String,
+    val color2: String
+)
+
+data class Notes(
+    val id: Int,
+    val theme: String,
+    val label: String,
+    val text: String
+)
+
+data class Note(
+    val id: Int,
+    val theme: String,
+    val text: String?,
+    val label: String?,
+    val tags: String?,
+    val chData: String?,
+    val isDeleted: Boolean
+)
+
+data class Label(
+    val id: Int,
+    val name: String,
+    val color1: String,
+    val color2: String
+)
+
 class NotesDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME, null, DATABASE_VERSION) {
 
     companion object {
@@ -75,23 +106,15 @@ class NotesDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE
         return newRowId
     }
 
-    data class Note(
-        val id: Int,
-        val theme: String,
-        val text: String?,
-        val label: String?,
-        val tags: String?,
-        val chData: String?,
-        val isDeleted: Boolean
-    )
+
 
     fun getNoteById(id: Int): Note? {
         val db = readableDatabase
         val cursor: Cursor? = db.query(
             TABLE_NOTES,
             null,
-            "$COLUMN_NOTE_ID = ?",
-            arrayOf(id.toString()),
+            "$COLUMN_NOTE_ID = ? AND $COLUMN_NOTE_DELETED = ?",
+            arrayOf(id.toString(), "0"),
             null,
             null,
             null
@@ -121,18 +144,14 @@ class NotesDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE
         return null
     }
 
-    data class Notes(
-        val id: Int,
-        val theme: String,
-        val label: String, // Цвет может быть null, если не используется
-        val text: String
-    )
+
 
     fun getAllNotes(): List<Notes> {
         val notes = mutableListOf<Notes>() // Список для хранения заметок
 
         val db = readableDatabase
-        val cursor: Cursor? = db.query(TABLE_NOTES, null, null, null, null, null, null)
+        val cursor: Cursor? = db.query(TABLE_NOTES, null, "$COLUMN_NOTE_DELETED = ?",
+            arrayOf("0"), null, null, null, null)
 
         try {
             // Проверяем, что курсор не null и содержит данные
@@ -170,12 +189,7 @@ class NotesDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE
     }
 
 
-    data class Label(
-        val id: Int,
-        val name: String,
-        val color1: String,
-        val color2: String
-    )
+
 
     fun getLabelById(id: Int): Label? {
         val db = readableDatabase
@@ -302,7 +316,7 @@ class NotesDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE
         db.close()
     }
 
-    fun updateNoteLabel(id: Long, label: String) {
+    fun updateNoteLabel(id: Int, label: String) {
         val db = writableDatabase
         val values = ContentValues().apply {
             put(COLUMN_NOTE_LABEL, label)
@@ -311,9 +325,12 @@ class NotesDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE
         db.close()
     }
 
-    fun deleteNote(id: Long) {
+    fun deleteNote(id: Int) {
         val db = writableDatabase
-        db.delete(TABLE_NOTES, "$COLUMN_NOTE_ID = ?", arrayOf(id.toString()))
+        val values = ContentValues().apply {
+            put(COLUMN_NOTE_DELETED, 1)
+        }
+        db.update(TABLE_NOTES, values, "$COLUMN_NOTE_ID = ?", arrayOf(id.toString()))
         db.close()
     }
 
@@ -352,30 +369,35 @@ class NotesDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE
 
 
 
-    data class Labels(
-        val id: Int,
-        val name: String,
-        val color1: String,
-        val color2: String
-    )
-    fun getAllLabels(): List<String> {
-        val labels = mutableListOf<String>()
+
+    fun getAllLabels(): List<Labels> {
+        val labels = mutableListOf<Labels>() // Список для хранения объектов Labels
         val db = readableDatabase
         val cursor: Cursor = db.query(TABLE_LABELS, null, null, null, null, null, null)
+
         if (cursor.moveToFirst()) {
             do {
-                val themeColumnIndex = cursor.getColumnIndex(COLUMN_LABELS_NAME)
-                if (themeColumnIndex != -1) {
-                    do {
-                        // Добавляем значения темы в список
-                        val label = cursor.getString(themeColumnIndex)
-                        labels.add(label)
-                    } while (cursor.moveToNext())
+                // Получаем индексы всех необходимых колонок
+                val idColumnIndex = cursor.getColumnIndex("id") // Укажите правильное имя колонки для ID
+                val nameColumnIndex = cursor.getColumnIndex(COLUMN_LABELS_NAME)
+                val color1ColumnIndex = cursor.getColumnIndex("color1") // Укажите правильное имя колонки для color1
+                val color2ColumnIndex = cursor.getColumnIndex("color2") // Укажите правильное имя колонки для color2
+
+                if (idColumnIndex != -1 && nameColumnIndex != -1 && color1ColumnIndex != -1 && color2ColumnIndex != -1) {
+                    // Создаем объект Labels из значений из курсора и добавляем его в список
+                    val id = cursor.getInt(idColumnIndex)
+                    val name = cursor.getString(nameColumnIndex)
+                    val color1 = cursor.getString(color1ColumnIndex)
+                    val color2 = cursor.getString(color2ColumnIndex)
+
+                    labels.add(Labels(id, name, color1, color2))
                 }
             } while (cursor.moveToNext())
         }
+
         cursor.close()
         db.close()
+
         return labels
     }
 

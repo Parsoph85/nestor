@@ -12,13 +12,14 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:gravity="center"
-        android:orientation="horizontal"></LinearLayout>
+        android:orientation="horizontal" />
 
     <EditText
         android:id="@+id/labelName"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="0dp"
         android:layout_weight="1"
+        android:hint = "Название до 20 символов"
         android:ems="10"
         android:gravity="center|center_vertical"
         android:inputType="text" />

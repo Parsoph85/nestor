@@ -2,24 +2,18 @@ package com.example.nestor
 
 import android.annotation.SuppressLint
 import android.app.Activity
-import android.graphics.Color
-import android.graphics.Typeface
+import android.content.Intent
 import android.os.Bundle
 import android.util.DisplayMetrics
 import android.widget.Button
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
-import android.graphics.drawable.GradientDrawable
-import android.view.Gravity
-import android.text.Spannable
-import android.text.SpannableString
-import android.text.style.AbsoluteSizeSpan
 import androidx.core.content.res.ResourcesCompat
-import android.text.style.StyleSpan
-import android.content.Intent
+import kotlin.properties.Delegates
 
-data class Note(
+data class NoteMin(
     val id: Int,
     val theme: String,
     val text: String,
@@ -32,9 +26,15 @@ class MainActivity : AppCompatActivity() {
     private lateinit var mainLabel: TextView
     private lateinit var addButton: Button
     private lateinit var settingButton: Button
+    private lateinit var notesDatabaseHelper: NotesDatabaseHelper
+    private lateinit var imageLogo: ImageView
 
+    private var width: Int = 0
+    private var elementHeight: Int = 0
     companion object {const val REQUEST_CODE = 1
     }
+    private var reloadFlag: Int by Delegates.observable(1) { _, _, newValue -> reloadNotes()}
+
 
     @SuppressLint("SetTextI18n")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -45,16 +45,27 @@ class MainActivity : AppCompatActivity() {
         val displayMetrics = DisplayMetrics()
         windowManager.defaultDisplay.getMetrics(displayMetrics)
 
-        val width = displayMetrics.widthPixels  //720     1080
+        width = displayMetrics.widthPixels  //720     1080
         val height = displayMetrics.heightPixels //1600  2274
-        val elementHeight = (height / 10) //160
+        elementHeight = (height / 10) //160
 
-        val notesDatabaseHelper = NotesDatabaseHelper(this)
+        notesDatabaseHelper = NotesDatabaseHelper(this)
         buttonsLayout = findViewById(R.id.buttonsLayout)
         headLayout = findViewById(R.id.headLayout)
+        imageLogo = findViewById(R.id.imageLogo)
         mainLabel = findViewById(R.id.mainLabel)
         addButton = findViewById(R.id.addButton)
         settingButton = findViewById(R.id.settingButton)
+
+
+        // вставить лого красиво надо!!!!!
+        val imageLogoParams = imageLogo.layoutParams as LinearLayout.LayoutParams
+        imageLogoParams.width = (height / 20)
+        imageLogoParams.height = (height / 20)
+        imageLogo.layoutParams = imageLogoParams
+        imageLogoParams.setMargins(width / 100, height / 180, width / 100, 0)
+
+
 
         val mainLabelParams = mainLabel.layoutParams as LinearLayout.LayoutParams
         mainLabelParams.width = width - 2 * elementHeight * 8 / 10
@@ -64,9 +75,10 @@ class MainActivity : AppCompatActivity() {
 
 
         val addButtonParams = addButton.layoutParams as LinearLayout.LayoutParams
-        addButtonParams.width = elementHeight * 6 / 10
-        addButtonParams.height = elementHeight * 6 / 10
+        addButtonParams.width = (height / 20)
+        addButtonParams.height = (height / 20)
         addButton.layoutParams = addButtonParams
+        addButtonParams.setMargins(width / 100, height / 200, width / 100, height / 200)
 
         addButton.setOnClickListener {
             val newNote = notesDatabaseHelper.addNote()
@@ -79,9 +91,10 @@ class MainActivity : AppCompatActivity() {
 
 
         val settingButtonParams = settingButton.layoutParams as LinearLayout.LayoutParams
-        settingButtonParams.width = elementHeight * 6 / 10
-        settingButtonParams.height = elementHeight * 6 / 10
+        settingButtonParams.width = (height / 20)
+        settingButtonParams.height = (height / 20)
         settingButton.layoutParams = settingButtonParams
+        settingButtonParams.setMargins(width / 100, height / 200, width / 100, height / 200)
 
         settingButton.setOnClickListener {
             }
@@ -90,7 +103,7 @@ class MainActivity : AppCompatActivity() {
         val notes = notesDatabaseHelper.getAllNotes()
 
         for (note in notes) {
-            val noteItem = Note (
+            val noteItem = NoteMin (
                 id = note.id,
                 theme = note.theme,
                 text = note.text,
@@ -102,12 +115,31 @@ class MainActivity : AppCompatActivity() {
     }
 
 
+    private fun reloadNotes() {
+        buttonsLayout.removeAllViews()
+        val notes = notesDatabaseHelper.getAllNotes()
+        for (note in notes) {
+            val noteItem = NoteMin(
+                id = note.id,
+                theme = note.theme,
+                text = note.text,
+                label = note.label.toInt()
+            )
+            val button = createNoteButton(noteItem, this, width, elementHeight)
+            buttonsLayout.addView(button)
+        }
+    }
+
+    @Deprecated("")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
+
         if (requestCode == REQUEST_CODE && resultCode == Activity.RESULT_OK) {
-            val updatedData = data?.getStringExtra("RESULT_KEY")
-            println("Result is $updatedData")
-            // Код для обновления
+            val updatedData = data?.getStringExtra("RESULT_KEY") //передает нулл почему-то. потом проверим
+            println("RESULTES as - $updatedData")
+            // Перезагружаем заметки для обновления интерфейса
+            reloadNotes()
         }
+        reloadNotes()
     }
 }

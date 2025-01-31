@@ -16,7 +16,7 @@ import android.widget.LinearLayout
 import androidx.core.content.res.ResourcesCompat
 import com.example.nestor.MainActivity.Companion.REQUEST_CODE
 
-fun createNoteButton(note: Note, context: Context, width: Int, elementHeight: Int): Button {
+fun createNoteButton(note: NoteMin, context: Context, width: Int, elementHeight: Int): Button {
     val button = Button(context).apply {
         val noteId = note.id
         val noteThemeDb = note.theme
@@ -29,6 +29,7 @@ fun createNoteButton(note: Note, context: Context, width: Int, elementHeight: In
         val labelColor1Db: String = labelDataDb?.color1 ?: "#ffffff"
         val labelColor2Db: String = labelDataDb?.color2 ?: "#ced9f2"
 
+        // Создаем SpannableString для установки разных шрифтов
         val spannableString = SpannableString("$noteThemeDb\n$noteTextDb")  // Создаем SpannableString для установки разных шрифтов
 
         spannableString.setSpan(

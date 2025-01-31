@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/mainLayout"
     android:layout_width="match_parent"
@@ -28,6 +29,13 @@
                 android:orientation="horizontal"
                 android:padding="3dp">
 
+                <ImageView
+                    android:id="@+id/imageLogo"
+                    android:layout_width="80dp"
+                    android:layout_height="80dp"
+                    android:layout_gravity="start|top|left"
+                    app:srcCompat="@drawable/logo" />
+
                 <TextView
                     android:id="@+id/mainLabel"
                     android:layout_width="0dp"
@@ -51,7 +59,7 @@
                     android:id="@+id/settingButton"
                     android:layout_width="80dp"
                     android:layout_height="80dp"
-                    android:background="@drawable/down_arrow"
+                    android:background="@drawable/menu"
                     android:text="" />
 
 
