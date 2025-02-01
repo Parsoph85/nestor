@@ -97,7 +97,7 @@ class NoteEdit : AppCompatActivity() {
 
         // ... и метка.
 
-        val labelDataDb = notesDatabaseHelper.getLabelById(noteLabelDb)
+        val labelDataDb = notesDatabaseHelper.getLabelById(noteLabelDb.toString())
         val labelNameDb: String = labelDataDb?.name ?: "Без метки..."
         val labelColor1Db: String = labelDataDb?.color1 ?: "#ffffff"
 
@@ -334,7 +334,7 @@ class NoteEdit : AppCompatActivity() {
 
 
     private fun changeLabel(newLabelId: Int) {
-        val newLabelData = notesDatabaseHelper.getLabelById(newLabelId)
+        val newLabelData = notesDatabaseHelper.getLabelById(newLabelId.toString())
         val newLabelName: String = newLabelData?.name ?: "Без метки..."
         val newLabelColor1: String = newLabelData?.color1 ?: "#ffffff"
         labelView.setBackgroundColor(Color.parseColor(newLabelColor1))

@@ -22,7 +22,7 @@ fun createNoteButton(note: NoteMin, context: Context, width: Int, elementHeight:
         val noteTextDb = note.text
         val noteLabelDb = note.label
         val notesDatabaseHelper = NotesDatabaseHelper(context)
-        val labelDataDb = noteLabelDb?.let { notesDatabaseHelper.getLabelById(it) }
+        val labelDataDb = noteLabelDb?.let { notesDatabaseHelper.getLabelById(it.toString()) }
         val labelColor1Db: String = labelDataDb?.color1 ?: "#ffffff"
 
         // Создаем SpannableString для установки разных шрифтов

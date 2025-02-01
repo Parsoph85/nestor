@@ -320,7 +320,7 @@ class NotesDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE
 
 
     // Получаем метку по ИД
-    fun getLabelById(id: Int): Label? {
+    fun getLabelById(id: String?): Label? {
         val db = readableDatabase
         var cursor: Cursor? = null // Инициализировать курсор с null
 
@@ -399,6 +399,22 @@ class NotesDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE
             db.close()      // Закрываем базу данных
         }
     }
+
+    fun deleteLabel(oldLabel: String, newLabel: String) {
+        val db = writableDatabase
+        val values = ContentValues().apply {
+            put(COLUMN_NOTE_LABEL, newLabel)
+        }
+        db.update(TABLE_NOTES, values, "$COLUMN_NOTE_LABEL = ?", arrayOf(oldLabel))
+        db.delete(TABLE_LABELS, "$COLUMN_LABELS_ID = ?", arrayOf(oldLabel))
+        db.close()
+    }
+
+
+
+
+
+
 
     fun getSorting(): Int? {
         val db = readableDatabase

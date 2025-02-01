@@ -107,7 +107,7 @@ class MainActivity : AppCompatActivity() {
         settingButtonParams.setMargins(width / 100, height / 200, width / 100, height / 200)
 
         settingButton.setOnClickListener {
-            mainMenu(this, height) { selectedSort ->
+            mainMenu(this, width, height, notesDatabaseHelper) { selectedSort ->
                 if (selectedSort in 0..5){
                 notesDatabaseHelper.setSorting(selectedSort)
                     sorting = selectedSort
