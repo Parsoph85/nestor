@@ -106,6 +106,7 @@ class MainActivity : AppCompatActivity() {
         settingButtonParams.setMargins(width / 100, height / 200, width / 100, height / 200)
 
         settingButton.setOnClickListener {
+            mainMenu(this, width, height)
             }
 
 

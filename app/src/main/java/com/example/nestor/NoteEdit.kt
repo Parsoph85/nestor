@@ -149,8 +149,6 @@ class NoteEdit : AppCompatActivity() {
 
         // Метка для названия ярлыка
 
-
-
         val labelViewParams = labelView.layoutParams as LinearLayout.LayoutParams
         labelViewParams.width = (width / 2)
         labelViewParams.height = (height / 20)
