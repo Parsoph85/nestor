@@ -33,6 +33,7 @@ class MainActivity : AppCompatActivity() {
     private var width: Int = 0
     private var height: Int = 0
     private var elementHeight: Int = 0
+    private var sorting: Int = 0
 
     @SuppressLint("SetTextI18n")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -106,12 +107,19 @@ class MainActivity : AppCompatActivity() {
         settingButtonParams.setMargins(width / 100, height / 200, width / 100, height / 200)
 
         settingButton.setOnClickListener {
-            mainMenu(this, width, height)
+            mainMenu(this, height) { selectedSort ->
+                if (selectedSort in 0..5){
+                notesDatabaseHelper.setSorting(selectedSort)
+                    sorting = selectedSort
+                reloadNotes()
+                }
             }
+        }
 
 
         // Кнопки тем
-        val notes = notesDatabaseHelper.getAllNotes()
+        sorting = notesDatabaseHelper.getSorting() ?: 0
+        val notes = notesDatabaseHelper.getAllNotes(sorting)
 
         for (note in notes) {
             val noteItem = NoteMin (
@@ -129,7 +137,7 @@ class MainActivity : AppCompatActivity() {
     // Функция перезагрузки тем - Обновление
     private fun reloadNotes() {
         buttonsLayout.removeAllViews()
-        val notes = notesDatabaseHelper.getAllNotes()
+        val notes = notesDatabaseHelper.getAllNotes(sorting)
         for (note in notes) {
             val noteItem = NoteMin(
                 id = note.id,

@@ -10,7 +10,7 @@ import androidx.appcompat.app.AlertDialog
 import androidx.core.content.ContextCompat
 
 
-fun mainMenu(context: Context, width: Int, height: Int) {
+fun mainMenu(context: Context, height: Int, onSortingSelected: (Int) -> Unit) {
     val layoutInflater = LayoutInflater.from(context)
     val dialogView = layoutInflater.inflate(R.layout.main_menu, null)
     val menuLayout = dialogView.findViewById<LinearLayout>(R.id.menuLayout)
@@ -19,19 +19,19 @@ fun mainMenu(context: Context, width: Int, height: Int) {
     val dialog = builder.create()
 
     // Добавление пунктов меню
-    menuLayout.addView(createMenuItem(context, dialog, width, height, R.drawable.sort, "Сортировка") {
-        // sortingMenu()
+    menuLayout.addView(createMenuItem(context, dialog,  height, R.drawable.sort, "Сортировка") {
+        sortingMenu(context, height){selectedSort -> onSortingSelected(selectedSort)}
     })
-    menuLayout.addView(createMenuItem(context, dialog, width, height, R.drawable.offer, "Метки") {
+    menuLayout.addView(createMenuItem(context, dialog,  height, R.drawable.offer, "Метки") {
         // labelMenu()
     })
-    menuLayout.addView(createMenuItem(context, dialog, width, height, R.drawable.export, "Экспорт") {
+    menuLayout.addView(createMenuItem(context, dialog,  height, R.drawable.export, "Экспорт") {
         // exportAll()
     })
-    menuLayout.addView(createMenuItem(context, dialog, width, height, R.drawable.importic, "Импорт") {
+    menuLayout.addView(createMenuItem(context, dialog,  height, R.drawable.importic, "Импорт") {
         // importAll()
     })
-    menuLayout.addView(createMenuItem(context, dialog, width, height, R.drawable.auth, "Вход") {
+    menuLayout.addView(createMenuItem(context, dialog,  height, R.drawable.auth, "Вход") {
         // authPopup()
     })
 
@@ -39,26 +39,24 @@ fun mainMenu(context: Context, width: Int, height: Int) {
 }
 
 // Функция для создания элемента меню
-fun createMenuItem(context: Context, dialog: AlertDialog, widthF: Int, heightF: Int, iconResId: Int, title: String, onClick: () -> Unit): LinearLayout {
+fun createMenuItem(context: Context, dialog: AlertDialog, heightF: Int, iconResId: Int, title: String, onClick: () -> Unit): LinearLayout {
     return LinearLayout(context).apply {
         orientation = LinearLayout.HORIZONTAL
         setPadding(10, 10, 10, 10)
 
         // Иконка
         val icon = ImageView(context).apply {
-
-            layoutParams = ViewGroup.LayoutParams((height / 20), (height / 20))
-            setPadding(10, height / 200, 10, height / 200)
+            layoutParams = ViewGroup.LayoutParams(heightF / 20, heightF / 20) // Используем heightF вместо height
             setImageDrawable(ContextCompat.getDrawable(context, iconResId))
+            setPadding(10, heightF / 200, 10, heightF / 200)
         }
 
         // Название пункта меню
         val menuItem = TextView(context).apply {
             text = title
-            width = widthF * 9 / 10
-            height = (heightF / 20)
+            layoutParams = LinearLayout.LayoutParams(0, heightF / 20, 1f) // Используем обертку для ширины
             textSize = 18f
-            setPadding(10, height / 200, 10, height / 200)
+            setPadding(10, heightF / 200, 10, heightF / 200)
         }
 
         addView(icon)
@@ -67,8 +65,7 @@ fun createMenuItem(context: Context, dialog: AlertDialog, widthF: Int, heightF: 
         // Обработчик клика
         setOnClickListener {
             onClick()  // Выполняем переданную лямбду.
-            // Закрываем диалог в случае необходимости
-            dialog.dismiss()  // Здесь необходимо, чтобы "dialog" имел доступ
+            dialog.dismiss()  // Закрываем диалог в случае необходимости
         }
     }
 }

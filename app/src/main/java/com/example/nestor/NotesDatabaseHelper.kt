@@ -149,10 +149,19 @@ class NotesDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE
 
 
     // Получаем массив всех записей
-    fun getAllNotes(): List<Notes> {
-        val notes = mutableListOf<Notes>() // Список для хранения заметок
-
+    fun getAllNotes(sort: Int): List<Notes> {
+        val notes = mutableListOf<Notes>()
         val db = readableDatabase
+        val orderBy: String = when (sort) {
+            0 -> "$COLUMN_NOTE_ID ASC"
+            1 -> "$COLUMN_NOTE_ID DESC"
+            2 -> "$COLUMN_NOTE_THEME ASC"
+            3 -> "$COLUMN_NOTE_THEME DESC"
+            4 -> "$COLUMN_NOTE_CH_DATA ASC"
+            5 -> "$COLUMN_NOTE_CH_DATA DESC"
+            else -> "$COLUMN_NOTE_ID ASC"
+        }
+
         val cursor: Cursor = db.query(
             TABLE_NOTES,
             null,
@@ -160,19 +169,17 @@ class NotesDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE
             arrayOf("0"),
             null,
             null,
-            null
+            orderBy
         )
 
         try {
-            // Убираем проверку на null
             if (cursor.moveToFirst()) {
                 val themeColumnIndex = cursor.getColumnIndex(COLUMN_NOTE_THEME)
                 val idColumnIndex = cursor.getColumnIndex(COLUMN_NOTE_ID)
                 val labelColumnIndex = cursor.getColumnIndex(COLUMN_NOTE_LABEL)
                 val textColumnIndex = cursor.getColumnIndex(COLUMN_NOTE_TEXT)
 
-                // Проверяем, что индексы столбцов существуют
-                if (themeColumnIndex != -1 && idColumnIndex != -1 && labelColumnIndex != -1) {
+                if (themeColumnIndex != -1 && idColumnIndex != -1 && labelColumnIndex != -1 && textColumnIndex != -1) {
                     do {
                         val theme = cursor.getString(themeColumnIndex) // Получаем строку с темой
                         val idNote = cursor.getInt(idColumnIndex) // Получаем ID заметки как целое число
@@ -390,6 +397,55 @@ class NotesDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE
         } finally {
             cursor?.close() // Закрываем курсор, если он инициализирован
             db.close()      // Закрываем базу данных
+        }
+    }
+
+    fun getSorting(): Int? {
+        val db = readableDatabase
+        var sortingId: Int? = null
+
+        val cursor = db.query(
+            TABLE_SETTING,
+            arrayOf(COLUMN_SETTING_SORTING),
+            "$COLUMN_LABELS_ID = ?",
+            arrayOf("1"),
+            null,
+            null,
+            null
+        )
+
+        return try {
+            if (cursor.moveToFirst()) {
+                sortingId = cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_SETTING_SORTING))
+            }
+            sortingId // Возвращаем найденный id сортировки или null, если не найдено
+        } catch (e: Exception) {
+            e.printStackTrace() // Логируем ошибку для отладки
+            null // Возвращаем null в случае ошибки
+        } finally {
+            cursor.close() // Закрываем курсор
+            db.close() // Закрываем базу данных
+        }
+    }
+
+
+
+
+    // Функции CRUD для таблицы setting
+    fun setSorting(id: Int): Boolean {
+        val db = writableDatabase
+        val values = ContentValues().apply {
+            put(COLUMN_SETTING_SORTING, id)
+        }
+
+        return try {
+            val rowsAffected = db.update(TABLE_SETTING, values, "$COLUMN_LABELS_ID = ?", arrayOf("1"))
+            rowsAffected > 0 // Возвращаем true, если строки обновлены
+        } catch (e: Exception) {
+            e.printStackTrace() // Логируем ошибку для отладки
+            false // Возвращаем false в случае ошибки
+        } finally {
+            db.close() // Закрываем базу данных
         }
     }
 
