@@ -25,7 +25,6 @@ import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.res.ResourcesCompat
-import com.example.nestor.MainActivity.Companion.REQUEST_CODE
 import java.io.File
 import java.io.FileOutputStream
 import kotlin.properties.Delegates
@@ -344,17 +343,6 @@ class NoteEdit : AppCompatActivity() {
         labelView.text = newLabelName
     }
 
-
-    @Deprecated("")
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-        if (requestCode == REQUEST_CODE && resultCode == Activity.RESULT_OK) {
-            val dataEcho = data?.getStringExtra("RESULT_LABEL")
-            println("DATAECHO - $dataEcho")
-        }
-
-
-    }
 
 
     // Сохранение заметки и выход

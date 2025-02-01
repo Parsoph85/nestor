@@ -33,8 +33,6 @@ class MainActivity : AppCompatActivity() {
     private var width: Int = 0
     private var height: Int = 0
     private var elementHeight: Int = 0
-    companion object {const val REQUEST_CODE = 1
-    }
 
     @SuppressLint("SetTextI18n")
     override fun onCreate(savedInstanceState: Bundle?) {
