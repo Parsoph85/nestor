@@ -2,7 +2,7 @@ import android.graphics.Canvas
 import android.graphics.Paint
 import android.text.style.ReplacementSpan
 import android.widget.CheckBox
-
+/*
 class CheckBoxSpan(private val checkBox: CheckBox) : ReplacementSpan() {
     var isChecked: Boolean = false
         set(value) {
@@ -34,4 +34,4 @@ class CheckBoxSpan(private val checkBox: CheckBox) : ReplacementSpan() {
     ): Int {
         return checkBox.measuredWidth // Ширина чекбокса
     }
-}
+}*/

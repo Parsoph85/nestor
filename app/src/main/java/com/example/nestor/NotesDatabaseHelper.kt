@@ -27,7 +27,15 @@ data class Note(
     val label: String?,
     val tags: String?,
     val chData: String?,
-    val isDeleted: Boolean
+    val isDeleted: Boolean,
+    val uid: String
+)
+
+data class NoteMin(
+    val id: Int,
+    val theme: String,
+    val text: String,
+    val label: Int?
 )
 
 data class Label(
@@ -53,6 +61,7 @@ class NotesDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE
         const val COLUMN_NOTE_TAGS = "tags"
         const val COLUMN_NOTE_CH_DATA = "ch_data"
         const val COLUMN_NOTE_DELETED = "deleted"
+        const val COLUMN_NOTE_UID = "uid"
 
         const val COLUMN_SETTING_ID = "id"
         const val COLUMN_SETTING_SORTING = "sorting"
@@ -68,7 +77,7 @@ class NotesDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE
 
     override fun onCreate(db: SQLiteDatabase) {
         // Создание таблиц при первой установке приложения
-        db.execSQL("CREATE TABLE $TABLE_NOTES ($COLUMN_NOTE_ID INTEGER PRIMARY KEY AUTOINCREMENT, $COLUMN_NOTE_THEME TEXT, $COLUMN_NOTE_TEXT TEXT, $COLUMN_NOTE_LABEL TEXT, $COLUMN_NOTE_TAGS TEXT, $COLUMN_NOTE_CH_DATA TIMESTAMP DEFAULT CURRENT_TIMESTAMP, $COLUMN_NOTE_DELETED BOOLEAN)")
+        db.execSQL("CREATE TABLE $TABLE_NOTES ($COLUMN_NOTE_ID INTEGER PRIMARY KEY AUTOINCREMENT, $COLUMN_NOTE_THEME TEXT, $COLUMN_NOTE_TEXT TEXT, $COLUMN_NOTE_LABEL TEXT, $COLUMN_NOTE_TAGS TEXT, $COLUMN_NOTE_CH_DATA TIMESTAMP DEFAULT CURRENT_TIMESTAMP, $COLUMN_NOTE_DELETED BOOLEAN, $COLUMN_NOTE_UID TEXT)")
         db.execSQL("CREATE TABLE $TABLE_SETTING ($COLUMN_SETTING_ID INTEGER PRIMARY KEY AUTOINCREMENT, $COLUMN_SETTING_SORTING INT, $COLUMN_SETTING_UNAME TEXT, $COLUMN_SETTING_PWWD TEXT, $COLUMN_SETTING_CH_DATA TIMESTAMP DEFAULT CURRENT_TIMESTAMP)")
         db.execSQL("CREATE TABLE $TABLE_LABELS ($COLUMN_LABELS_ID INTEGER PRIMARY KEY AUTOINCREMENT, $COLUMN_LABELS_NAME TEXT, $COLUMN_LABEL_COLOR1 TEXT, $COLUMN_LABEL_COLOR2 TEXT)")
 
@@ -91,6 +100,8 @@ class NotesDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE
 
     // Добавить
     fun addNote(): Long {
+        val id: String = generateRandomDigits()
+        val uid: String = generateRandomAlphanumeric()
         val db = writableDatabase
         val values = ContentValues().apply {
             put(COLUMN_NOTE_THEME, "Новая заметка")
@@ -99,6 +110,21 @@ class NotesDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE
             put(COLUMN_NOTE_TAGS, "")
             put(COLUMN_NOTE_DELETED, false)
         }
+
+        do {
+            val cursor = db.query(TABLE_NOTES, arrayOf(COLUMN_NOTE_ID), "$COLUMN_NOTE_ID = ?", arrayOf(id), null, null, null)
+            val exists = cursor.count > 0
+            cursor.close()
+        } while (exists)
+        values.put(COLUMN_NOTE_ID, id)
+
+        do {
+            val cursor = db.query(TABLE_NOTES, arrayOf(COLUMN_NOTE_UID), "$COLUMN_NOTE_UID = ?", arrayOf(uid), null, null, null)
+            val exists = cursor.count > 0
+            cursor.close()
+        } while (exists)
+        values.put(COLUMN_NOTE_UID, uid)
+
 
         // Вставляем новую запись и получаем ее ID
         val newRowId = db.insert(TABLE_NOTES, null, values)
@@ -132,6 +158,7 @@ class NotesDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE
                 val tagsIndex = it.getColumnIndex(COLUMN_NOTE_TAGS)
                 val chDataIndex = it.getColumnIndex(COLUMN_NOTE_CH_DATA)
                 val deletedIndex = it.getColumnIndex(COLUMN_NOTE_DELETED)
+                val uid = it.getColumnIndex(COLUMN_NOTE_UID)
 
                 return Note(
                     id = if (idIndex != -1) it.getInt(idIndex) else -1,
@@ -140,7 +167,8 @@ class NotesDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE
                     label = if (labelIndex != -1) it.getString(labelIndex) else null,
                     tags = if (tagsIndex != -1) it.getString(tagsIndex) else null,
                     chData = if (chDataIndex != -1) it.getString(chDataIndex) else null,
-                    isDeleted = if (deletedIndex != -1) it.getInt(deletedIndex) > 0 else false
+                    isDeleted = if (deletedIndex != -1) it.getInt(deletedIndex) > 0 else false,
+                    uid = if (uid != -1) it.getString(uid) else ""
                 )
             }
         }
@@ -465,48 +493,30 @@ class NotesDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE
         }
     }
 
-
-/* // Пока не используемые функции
-    fun deleteLabel(id: Int) {
+   /* fun addColumnToUsersTable() {
+        // Формирование SQL-запроса для добавления столбца
         val db = writableDatabase
-        db.delete(TABLE_LABELS, "$COLUMN_LABELS_ID = ?", arrayOf(id.toString()))
-        db.close()
+        val sql = "ALTER TABLE notes ADD COLUMN uid TEXT"
+        db.execSQL(sql)
+
+    }*/
+
+    private fun generateRandomDigits(): String {
+        val digits = ('0'..'9').toList()
+        return (1..10)
+            .map { digits.random() }
+            .joinToString("")
     }
 
-    fun getAllLabelsId(): List<String> {
-        val labels = mutableListOf<String>()
-        val db = readableDatabase
-        val cursor: Cursor = db.query(TABLE_LABELS, null, null, null, null, null, null)
-
-        if (cursor.moveToFirst()) {
-            do {
-                // Получаем индекс столбца ID
-                val idColumnIndex = cursor.getColumnIndex(COLUMN_LABELS_ID)
-                if (idColumnIndex != -1) {
-                    // Добавляем значение ID в список
-                    val labelId = cursor.getString(idColumnIndex)
-                    labels.add(labelId)
-                }
-            } while (cursor.moveToNext())
-        }
-
-        cursor.close()
-        db.close()
-        return labels
+    private fun generateRandomAlphanumeric(): String {
+        val alphanumericChars = ('0'..'9') + ('A'..'Z') + ('a'..'z')
+        return (1..10)
+            .map { alphanumericChars.random() }
+            .joinToString("")
     }
 
-    // Функции CRUD для таблицы setting
-    fun getSorting(): Int {
-        val db = readableDatabase
-        val cursor: Cursor = db.query(TABLE_SETTING, arrayOf(COLUMN_SETTING_SORTING), null, null, null, null, null)
-        var sorting = 0
-        if (cursor.moveToFirst()) {
-            sorting = cursor.getInt(0)
-        }
-        cursor.close()
-        db.close()
-        return sorting
-    }
-*/
+
+
+
 
 }

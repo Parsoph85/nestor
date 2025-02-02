@@ -86,7 +86,7 @@ class NoteEdit : AppCompatActivity() {
         height = intent.getStringExtra("EXTRA_HEIGHT")?.toInt() ?: 1600
         width = intent.getStringExtra("EXTRA_WIDTH")?.toInt() ?: 700
         noteIdDb = intent.getStringExtra("EXTRA_THEME")?.toInt() ?: 1
-
+        println("TEST - $height - $width - $noteIdDb")
 
         // Получение данных из БД: заметка ...
 
@@ -589,7 +589,4 @@ class NoteEdit : AppCompatActivity() {
 
         dialog.show() // Показываем диалог
     }
-
-
 }
-

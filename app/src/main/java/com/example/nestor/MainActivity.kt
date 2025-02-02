@@ -14,13 +14,6 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.res.ResourcesCompat
 
-data class NoteMin(
-    val id: Int,
-    val theme: String,
-    val text: String,
-    val label: Int?
-)
-
 class MainActivity : AppCompatActivity() {
     private lateinit var buttonsLayout: LinearLayout
     private lateinit var headLayout: LinearLayout
@@ -85,6 +78,8 @@ class MainActivity : AppCompatActivity() {
         mainLabelParams.height = elementHeight * 8 / 10
         mainLabel.layoutParams = mainLabelParams
         mainLabel.typeface = ResourcesCompat.getFont(this, R.font.roboto_mono)
+
+
 
         // Добавить
         val addButtonParams = addButton.layoutParams as LinearLayout.LayoutParams
