@@ -1,16 +1,24 @@
 package com.example.nestor
 
+import android.annotation.SuppressLint
 import android.content.ContentValues
 import android.content.Context
 import android.database.Cursor
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
+import android.util.Base64
+import javax.crypto.Cipher
+import javax.crypto.KeyGenerator
+import javax.crypto.SecretKey
+import javax.crypto.spec.SecretKeySpec
 
 data class Labels(
     val id: Int,
     val name: String,
     val color1: String,
-    val color2: String
+    val color2: String,
+    val uid1: String,
+    val uid2: String
 )
 
 data class Notes(
@@ -28,7 +36,9 @@ data class Note(
     val tags: String?,
     val chData: String?,
     val isDeleted: Boolean,
-    val uid: String
+    val uid1: String,
+    val uid2: String
+
 )
 
 data class NoteMin(
@@ -42,7 +52,9 @@ data class Label(
     val id: Int,
     val name: String,
     val color1: String,
-    val color2: String
+    val color2: String,
+    val uid1: String,
+    val uid2: String
 )
 
 class NotesDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME, null, DATABASE_VERSION) {
@@ -61,30 +73,36 @@ class NotesDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE
         const val COLUMN_NOTE_TAGS = "tags"
         const val COLUMN_NOTE_CH_DATA = "ch_data"
         const val COLUMN_NOTE_DELETED = "deleted"
-        const val COLUMN_NOTE_UID = "uid"
+        const val COLUMN_NOTE_UID1 = "uid1"
+        const val COLUMN_NOTE_UID2 = "uid2"
 
         const val COLUMN_SETTING_ID = "id"
         const val COLUMN_SETTING_SORTING = "sorting"
         const val COLUMN_SETTING_UNAME = "uname"
         const val COLUMN_SETTING_PWWD = "pwwd"
         const val COLUMN_SETTING_CH_DATA = "ch_data"
+        const val COLUMN_SETTING_SHA = "sha"
 
         const val COLUMN_LABELS_ID = "id"
         const val COLUMN_LABELS_NAME = "name"
         const val COLUMN_LABEL_COLOR1 = "color1"
         const val COLUMN_LABEL_COLOR2 = "color2"
+        const val COLUMN_LABEL_UID1 = "uid1"
+        const val COLUMN_LABEL_UID2 = "uid2"
     }
 
     override fun onCreate(db: SQLiteDatabase) {
         // Создание таблиц при первой установке приложения
-        db.execSQL("CREATE TABLE $TABLE_NOTES ($COLUMN_NOTE_ID INTEGER PRIMARY KEY AUTOINCREMENT, $COLUMN_NOTE_THEME TEXT, $COLUMN_NOTE_TEXT TEXT, $COLUMN_NOTE_LABEL TEXT, $COLUMN_NOTE_TAGS TEXT, $COLUMN_NOTE_CH_DATA TIMESTAMP DEFAULT CURRENT_TIMESTAMP, $COLUMN_NOTE_DELETED BOOLEAN, $COLUMN_NOTE_UID TEXT)")
-        db.execSQL("CREATE TABLE $TABLE_SETTING ($COLUMN_SETTING_ID INTEGER PRIMARY KEY AUTOINCREMENT, $COLUMN_SETTING_SORTING INT, $COLUMN_SETTING_UNAME TEXT, $COLUMN_SETTING_PWWD TEXT, $COLUMN_SETTING_CH_DATA TIMESTAMP DEFAULT CURRENT_TIMESTAMP)")
-        db.execSQL("CREATE TABLE $TABLE_LABELS ($COLUMN_LABELS_ID INTEGER PRIMARY KEY AUTOINCREMENT, $COLUMN_LABELS_NAME TEXT, $COLUMN_LABEL_COLOR1 TEXT, $COLUMN_LABEL_COLOR2 TEXT)")
+        db.execSQL("CREATE TABLE $TABLE_NOTES ($COLUMN_NOTE_ID INTEGER PRIMARY KEY AUTOINCREMENT, $COLUMN_NOTE_THEME TEXT, $COLUMN_NOTE_TEXT TEXT, $COLUMN_NOTE_LABEL TEXT, $COLUMN_NOTE_TAGS TEXT, $COLUMN_NOTE_CH_DATA TIMESTAMP DEFAULT CURRENT_TIMESTAMP, $COLUMN_NOTE_DELETED BOOLEAN, $COLUMN_NOTE_UID1 TEXT, $COLUMN_NOTE_UID2 TEXT)")
+        db.execSQL("CREATE TABLE $TABLE_SETTING ($COLUMN_SETTING_ID INTEGER PRIMARY KEY AUTOINCREMENT, $COLUMN_SETTING_SORTING INT, $COLUMN_SETTING_UNAME TEXT, $COLUMN_SETTING_PWWD TEXT, $COLUMN_SETTING_CH_DATA TIMESTAMP DEFAULT CURRENT_TIMESTAMP, $COLUMN_SETTING_SHA SECRETKEY)")
+        db.execSQL("CREATE TABLE $TABLE_LABELS ($COLUMN_LABELS_ID INTEGER PRIMARY KEY AUTOINCREMENT, $COLUMN_LABELS_NAME TEXT, $COLUMN_LABEL_COLOR1 TEXT, $COLUMN_LABEL_COLOR2 TEXT, $COLUMN_NOTE_UID1 TEXT, $COLUMN_NOTE_UID2 TEXT)")
 
+
+        val secretKey = generateKey()
         // Автоматическое добавление значений в таблицу setting
-        db.execSQL("INSERT INTO $TABLE_SETTING ($COLUMN_SETTING_SORTING) VALUES (4)")
+        db.execSQL("INSERT INTO $TABLE_SETTING ($COLUMN_SETTING_SORTING, $COLUMN_SETTING_SHA) VALUES (0, '$secretKey')")
         // Автоматическое добавление значений в таблицу labels
-        db.execSQL("INSERT INTO $TABLE_LABELS ($COLUMN_LABELS_NAME, $COLUMN_LABEL_COLOR1, $COLUMN_LABEL_COLOR2) VALUES ('Без темы...', '#FFFFFF', '#ced9f2')")
+        db.execSQL("INSERT INTO $TABLE_LABELS ($COLUMN_LABELS_NAME, $COLUMN_LABEL_COLOR1, $COLUMN_LABEL_COLOR2, $COLUMN_NOTE_UID1, $COLUMN_NOTE_UID2) VALUES ('Без темы...', '#FFFFFF', '#ced9f2','','')")
     }
 
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
@@ -100,35 +118,28 @@ class NotesDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE
 
     // Добавить
     fun addNote(): Long {
-        val id: String = generateRandomDigits()
-        val uid: String = generateRandomAlphanumeric()
         val db = writableDatabase
+
+        var theme = "Новая заметка"
+        var text = "Введите текст"
+        theme = encrypt(theme)
+        text = encrypt(text)
+
         val values = ContentValues().apply {
-            put(COLUMN_NOTE_THEME, "Новая заметка")
-            put(COLUMN_NOTE_TEXT, "Введите текст")
+            put(COLUMN_NOTE_THEME, theme)
+            put(COLUMN_NOTE_TEXT, text)
             put(COLUMN_NOTE_LABEL, "1")
             put(COLUMN_NOTE_TAGS, "")
             put(COLUMN_NOTE_DELETED, false)
         }
 
-        do {
-            val cursor = db.query(TABLE_NOTES, arrayOf(COLUMN_NOTE_ID), "$COLUMN_NOTE_ID = ?", arrayOf(id), null, null, null)
-            val exists = cursor.count > 0
-            cursor.close()
-        } while (exists)
-        values.put(COLUMN_NOTE_ID, id)
-
-        do {
-            val cursor = db.query(TABLE_NOTES, arrayOf(COLUMN_NOTE_UID), "$COLUMN_NOTE_UID = ?", arrayOf(uid), null, null, null)
-            val exists = cursor.count > 0
-            cursor.close()
-        } while (exists)
-        values.put(COLUMN_NOTE_UID, uid)
-
+        val uid1: String = generateRandomAlphanumeric()
+        val uid2: String = generateRandomAlphanumeric()
+        values.put(COLUMN_NOTE_UID1, uid1)
+        values.put(COLUMN_NOTE_UID2, uid2)
 
         // Вставляем новую запись и получаем ее ID
         val newRowId = db.insert(TABLE_NOTES, null, values)
-
         // Закрываем базу данных
         db.close()
 
@@ -158,17 +169,19 @@ class NotesDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE
                 val tagsIndex = it.getColumnIndex(COLUMN_NOTE_TAGS)
                 val chDataIndex = it.getColumnIndex(COLUMN_NOTE_CH_DATA)
                 val deletedIndex = it.getColumnIndex(COLUMN_NOTE_DELETED)
-                val uid = it.getColumnIndex(COLUMN_NOTE_UID)
+                val uid1 = it.getColumnIndex(COLUMN_NOTE_UID1)
+                val uid2 = it.getColumnIndex(COLUMN_NOTE_UID2)
 
                 return Note(
                     id = if (idIndex != -1) it.getInt(idIndex) else -1,
-                    theme = if (themeIndex != -1) it.getString(themeIndex) ?: "" else "",
-                    text = if (textIndex != -1) it.getString(textIndex) else null,
+                    theme = if (themeIndex != -1) decrypt(it.getString(themeIndex)) else "",
+                    text = if (textIndex != -1) decrypt(it.getString(textIndex)) else null,
                     label = if (labelIndex != -1) it.getString(labelIndex) else null,
                     tags = if (tagsIndex != -1) it.getString(tagsIndex) else null,
                     chData = if (chDataIndex != -1) it.getString(chDataIndex) else null,
                     isDeleted = if (deletedIndex != -1) it.getInt(deletedIndex) > 0 else false,
-                    uid = if (uid != -1) it.getString(uid) else ""
+                    uid1 = if (uid1 != -1) it.getString(uid1) else "",
+                    uid2 = if (uid2 != -1) it.getString(uid2) else ""
                 )
             }
         }
@@ -209,10 +222,10 @@ class NotesDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE
 
                 if (themeColumnIndex != -1 && idColumnIndex != -1 && labelColumnIndex != -1 && textColumnIndex != -1) {
                     do {
-                        val theme = cursor.getString(themeColumnIndex) // Получаем строку с темой
+                        val theme = decrypt(cursor.getString(themeColumnIndex)) // Получаем строку с темой
                         val idNote = cursor.getInt(idColumnIndex) // Получаем ID заметки как целое число
                         val label = cursor.getString(labelColumnIndex) // Получаем цвет метки
-                        val previewText = cursor.getString(textColumnIndex)
+                        val previewText = decrypt(cursor.getString(textColumnIndex))
                         val characterCount = previewText.length
                         val text = if (characterCount > 30) {
                             previewText.take(30) + "..." // Получаем первые 30 символов и добавляем "..."
@@ -234,14 +247,18 @@ class NotesDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE
     }
 
     // Обновляем
-    fun updateNote(id: Long, theme: String, text: String, label: String, tags: String, deleted: Boolean) {
+    fun updateNote(id: Long, themeF: String, textF: String, label: String, tags: String, deleted: Boolean, uidDb1: String, uidDb2: String) {
         val db = writableDatabase
+        val theme = encrypt(themeF)
+        val text = encrypt(textF)
         val values = ContentValues().apply {
             put(COLUMN_NOTE_THEME, theme)
             put(COLUMN_NOTE_TEXT, text)
             put(COLUMN_NOTE_LABEL, label)
             put(COLUMN_NOTE_TAGS, tags)
             put(COLUMN_NOTE_DELETED, deleted)
+            put(COLUMN_NOTE_UID1, uidDb1)
+            put(COLUMN_NOTE_UID2, uidDb2)
         }
         db.update(TABLE_NOTES, values, "$COLUMN_NOTE_ID = ?", arrayOf(id.toString()))
         db.close()
@@ -287,6 +304,10 @@ class NotesDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE
                 put(COLUMN_LABEL_COLOR1, color1)
                 put(COLUMN_LABEL_COLOR2, color2)
             }
+            val uid1: String = generateRandomAlphanumeric()
+            val uid2: String = generateRandomAlphanumeric()
+            values.put(COLUMN_LABEL_UID1, uid1)
+            values.put(COLUMN_LABEL_UID2, uid2)
             db.insert(TABLE_LABELS, null, values)
         }
     }
@@ -304,6 +325,8 @@ class NotesDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE
                 val nameColumnIndex = cursor.getColumnIndex(COLUMN_LABELS_NAME)
                 val color1ColumnIndex = cursor.getColumnIndex("color1") // Укажите правильное имя колонки для color1
                 val color2ColumnIndex = cursor.getColumnIndex("color2") // Укажите правильное имя колонки для color2
+                val uid1Index = cursor.getColumnIndex("uid1")
+                val uid2Index = cursor.getColumnIndex("uid2")
 
                 if (idColumnIndex != -1 && nameColumnIndex != -1 && color1ColumnIndex != -1 && color2ColumnIndex != -1) {
                     // Создаем объект Labels из значений из курсора и добавляем его в список
@@ -311,8 +334,10 @@ class NotesDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE
                     val name = cursor.getString(nameColumnIndex)
                     val color1 = cursor.getString(color1ColumnIndex)
                     val color2 = cursor.getString(color2ColumnIndex)
+                    val uid1 = cursor.getString(uid1Index)
+                    val uid2 = cursor.getString(uid2Index)
 
-                    labels.add(Labels(id, name, color1, color2))
+                    labels.add(Labels(id, name, color1, color2, uid1, uid2))
                 }
             } while (cursor.moveToNext())
         }
@@ -370,6 +395,8 @@ class NotesDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE
                 val nameColumnIndex = cursor.getColumnIndex(COLUMN_LABELS_NAME)
                 val color1ColumnIndex = cursor.getColumnIndex(COLUMN_LABEL_COLOR1)
                 val color2ColumnIndex = cursor.getColumnIndex(COLUMN_LABEL_COLOR2)
+                val uid1Index = cursor.getColumnIndex(COLUMN_LABEL_UID1)
+                val uid2Index = cursor.getColumnIndex(COLUMN_LABEL_UID2)
 
                 // Проверяем наличие всех необходимых столбцов
                 if (idColumnIndex != -1 && nameColumnIndex != -1 &&
@@ -380,8 +407,10 @@ class NotesDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE
                     val name = cursor.getString(nameColumnIndex)
                     val color1 = cursor.getString(color1ColumnIndex)
                     val color2 = cursor.getString(color2ColumnIndex)
+                    val uid1 = cursor.getString(uid1Index)
+                    val uid2 = cursor.getString(uid2Index)
 
-                    Label(id = labelId, name = name, color1 = color1, color2 = color2)
+                    Label(id = labelId, name = name, color1 = color1, color2 = color2, uid1 = uid1, uid2 = uid2)
                 } else {
                     null // Если столбцы не найдены, возвращаем null
                 }
@@ -404,6 +433,8 @@ class NotesDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE
                     val nameColumnIndex = cursor.getColumnIndex(COLUMN_LABELS_NAME)
                     val color1ColumnIndex = cursor.getColumnIndex(COLUMN_LABEL_COLOR1)
                     val color2ColumnIndex = cursor.getColumnIndex(COLUMN_LABEL_COLOR2)
+                    val uid1Index = cursor.getColumnIndex(COLUMN_LABEL_UID1)
+                    val uid2Index = cursor.getColumnIndex(COLUMN_LABEL_UID2)
 
                     if (idColumnIndex != -1 && nameColumnIndex != -1 &&
                         color1ColumnIndex != -1 && color2ColumnIndex != -1) {
@@ -413,8 +444,10 @@ class NotesDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE
                         val name = cursor.getString(nameColumnIndex)
                         val color1 = cursor.getString(color1ColumnIndex)
                         val color2 = cursor.getString(color2ColumnIndex)
+                        val uid1 = cursor.getString(uid1Index)
+                        val uid2 = cursor.getString(uid2Index)
 
-                        Label(id = labelId, name = name, color1 = color1, color2 = color2)
+                        Label(id = labelId, name = name, color1 = color1, color2 = color2, uid1 = uid1, uid2 = uid2)
                     } else {
                         null // Если столбцы не найдены, возвращаем null
                     }
@@ -493,24 +526,10 @@ class NotesDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE
         }
     }
 
-   /* fun addColumnToUsersTable() {
-        // Формирование SQL-запроса для добавления столбца
-        val db = writableDatabase
-        val sql = "ALTER TABLE notes ADD COLUMN uid TEXT"
-        db.execSQL(sql)
-
-    }*/
-
-    private fun generateRandomDigits(): String {
-        val digits = ('0'..'9').toList()
-        return (1..10)
-            .map { digits.random() }
-            .joinToString("")
-    }
 
     private fun generateRandomAlphanumeric(): String {
-        val alphanumericChars = ('0'..'9') + ('A'..'Z') + ('a'..'z')
-        return (1..10)
+        val alphanumericChars = ('1'..'9') + ('A'..'Z') + ('a'..'z')
+        return (1..15)
             .map { alphanumericChars.random() }
             .joinToString("")
     }
@@ -518,5 +537,52 @@ class NotesDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE
 
 
 
+    private fun generateKey(): String {
+        val keyGen = KeyGenerator.getInstance("AES")
+        keyGen.init(256) // Длина ключа (128, 192 или 256 бит)
+        val secretKey: SecretKey = keyGen.generateKey()
+        return Base64.encodeToString(secretKey.encoded, Base64.NO_WRAP) // Сохраняем ключ в виде строки
+    }
+
+    @SuppressLint("GetInstance")
+    fun encrypt(plainText: String): String {
+        val secretKeyString = getSHAValue()
+        val secretKey = secretKeyString?.let { getSecretKeyFromString(it) }
+        val cipher = Cipher.getInstance("AES")
+        cipher.init(Cipher.ENCRYPT_MODE, secretKey)
+        val encryptedBytes = cipher.doFinal(plainText.toByteArray())
+        return Base64.encodeToString(encryptedBytes, Base64.NO_WRAP)
+    }
+
+    @SuppressLint("GetInstance")
+    fun decrypt(encryptedText: String): String {
+        val secretKeyString = getSHAValue()
+        val secretKey = secretKeyString?.let { getSecretKeyFromString(it) }
+        val cipher = Cipher.getInstance("AES")
+        cipher.init(Cipher.DECRYPT_MODE, secretKey)
+        val decryptedBytes = cipher.doFinal(Base64.decode(encryptedText, Base64.NO_WRAP))
+        return String(decryptedBytes)
+    }
+
+    private fun getSHAValue(): String? {
+        val db = this.readableDatabase
+        val cursor = db.rawQuery("SELECT $COLUMN_SETTING_SHA FROM $TABLE_SETTING", null)
+        var shaValue: String? = null
+
+        if (cursor.moveToFirst()) {
+            val columnIndex = cursor.getColumnIndex(COLUMN_SETTING_SHA)
+            if (columnIndex != -1) {
+                shaValue = cursor.getString(columnIndex)
+            }
+        }
+        cursor.close()
+        return shaValue
+    }
+
+
+    private fun getSecretKeyFromString(keyString: String): SecretKey {
+        val decodedKey = Base64.decode(keyString, Base64.NO_WRAP)
+        return SecretKeySpec(decodedKey, 0, decodedKey.size, "AES")
+    }
 
 }

@@ -33,7 +33,7 @@ fun mainMenu(context: Context, width: Int, height: Int, notesDatabaseHelper: Not
     })
 
     menuLayout.addView(createMenuItem(context, dialog, height, R.drawable.auth, "Вход") {
-        authPopup(context)
+        authPopup(context, width, height)
     })
 
     dialog.show() // Показываем диалог

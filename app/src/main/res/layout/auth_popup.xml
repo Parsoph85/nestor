@@ -1,18 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
     <LinearLayout
+        android:id="@+id/mainLayout"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        android:gravity="center|center_vertical"
         android:orientation="vertical">
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:orientation="horizontal"></LinearLayout>
 
         <ImageView
             android:id="@+id/imageView"
@@ -21,24 +19,35 @@
             app:srcCompat="@drawable/auth" />
 
         <EditText
+            android:id="@+id/editLogin"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:ems="10"
+            android:hint="E-mail"
+            android:inputType="text"
+            android:textAlignment="center" />
+
+        <EditText
             android:id="@+id/editPassword"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:ems="10"
-            android:inputType="text"
-            android:text="Name" />
+            android:hint="Пароль"
+            android:inputType="textPassword"
+            android:textAlignment="center" />
 
-        <EditText
-            android:id="@+id/editTextTextPassword"
+        <CheckBox
+            android:id="@+id/rememberCheck"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:ems="10"
-            android:inputType="textPassword" />
+            android:gravity="center_vertical"
+            android:text="Запомнить меня" />
 
         <Button
             android:id="@+id/authButton"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Button" />
+            android:text="Войти" />
+
     </LinearLayout>
 </androidx.constraintlayout.widget.ConstraintLayout>

@@ -46,6 +46,8 @@ class NoteEdit : AppCompatActivity() {
     private lateinit var notesDatabaseHelper: NotesDatabaseHelper
     private var noteIdDb: Int = 1
     private var noteLabelDb: Int by Delegates.observable(1) { _, _, newValue -> changeLabel(newValue)}
+    private var uidDb1: String = ""
+    private var uidDb2: String = ""
     private var width = 0
     private var height = 0
 
@@ -86,14 +88,16 @@ class NoteEdit : AppCompatActivity() {
         height = intent.getStringExtra("EXTRA_HEIGHT")?.toInt() ?: 1600
         width = intent.getStringExtra("EXTRA_WIDTH")?.toInt() ?: 700
         noteIdDb = intent.getStringExtra("EXTRA_THEME")?.toInt() ?: 1
-        println("TEST - $height - $width - $noteIdDb")
 
         // Получение данных из БД: заметка ...
 
         val note = notesDatabaseHelper.getNoteById(noteIdDb)
+        println("TEST NE $note")
         val noteThemeDb: String = note?.theme ?: "Без темы..."
         val noteTextDb: String = note?.text.toString()
         noteLabelDb = note?.label?.toInt() ?: 1
+        uidDb1 = note?.uid1.toString()
+        uidDb2 = note?.uid2.toString()
 
         // ... и метка.
 
@@ -356,7 +360,7 @@ class NoteEdit : AppCompatActivity() {
             modifiedTheme = enteredText.take(26) + "..."
         }
 
-        notesDatabaseHelper.updateNote(noteIdDb.toLong(), modifiedTheme, enteredText, noteLabelDb.toString(), "", false)
+        notesDatabaseHelper.updateNote(noteIdDb.toLong(), modifiedTheme, enteredText, noteLabelDb.toString(), "", false, uidDb1, uidDb2)
 
         // Создаем Intent для передачи результата
         val resultIntent = Intent().apply {
@@ -386,7 +390,9 @@ class NoteEdit : AppCompatActivity() {
                 id = label.id,
                 name = label.name,
                 color1 = label.color1,
-                color2 = label.color2
+                color2 = label.color2,
+                uid1 = label.uid1,
+                uid2 = label.uid2
             )
             val labelId = noteItem.id
             val labelName = noteItem.name

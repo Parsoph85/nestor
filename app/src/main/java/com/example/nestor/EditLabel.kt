@@ -24,7 +24,9 @@ fun labelMenu(context: Context, widthFun: Int, heightFun: Int, notesDatabaseHelp
             id = label.id,
             name = label.name,
             color1 = label.color1,
-            color2 = label.color2
+            color2 = label.color2,
+            uid1 = label.uid1,
+            uid2 = label.uid2
         )
         val labelId = noteItem.id
         val labelName = noteItem.name

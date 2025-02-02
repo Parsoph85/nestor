@@ -26,7 +26,7 @@ class MainActivity : AppCompatActivity() {
     private var width: Int = 0
     private var height: Int = 0
     private var elementHeight: Int = 0
-    private var sorting: Int = 0
+    private var sorting: Int = 4
 
     @SuppressLint("SetTextI18n")
     override fun onCreate(savedInstanceState: Bundle?) {
