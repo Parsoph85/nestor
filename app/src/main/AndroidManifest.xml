@@ -11,14 +11,14 @@
         android:theme="@style/Theme.AppCompat.Light.NoActionBar">
 
         <activity
-            android:name=".MainActivity"
+            android:name="com.nestor.nestor.MainActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity android:name=".NoteEdit" />
+        <activity android:name="com.nestor.nestor.NoteEdit" />
 
         <meta-data
             android:name="preloaded_fonts"

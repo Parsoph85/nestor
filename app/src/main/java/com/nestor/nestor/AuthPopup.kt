@@ -1,4 +1,4 @@
-package com.example.nestor
+package com.nestor.nestor
 
 import android.content.Context
 import android.graphics.Color
@@ -11,11 +11,12 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
+import com.example.nestor.R
 import java.net.InetSocketAddress
 import java.net.Socket
 
 
-fun authPopup(context:Context, width: Int, height: Int) {
+fun authPopup(context:Context, width: Int) {
     val layoutInflater = LayoutInflater.from(context)
     val dialogView = layoutInflater.inflate(R.layout.auth_popup, null)
     val builder = AlertDialog.Builder(context).setView(dialogView)

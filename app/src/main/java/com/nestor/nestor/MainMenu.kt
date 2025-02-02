@@ -1,4 +1,4 @@
-package com.example.nestor
+package com.nestor.nestor
 
 import android.content.Context
 import android.view.LayoutInflater
@@ -8,6 +8,7 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
 import androidx.core.content.ContextCompat
+import com.example.nestor.R
 
 
 fun mainMenu(context: Context, width: Int, height: Int, notesDatabaseHelper: NotesDatabaseHelper, onSortingSelected: (Int) -> Unit) {
@@ -32,9 +33,9 @@ fun mainMenu(context: Context, width: Int, height: Int, notesDatabaseHelper: Not
         exportAll(context, notesDatabaseHelper)
     })
 
-    menuLayout.addView(createMenuItem(context, dialog, height, R.drawable.auth, "Вход") {
-        authPopup(context, width, height)
-    })
+    //menuLayout.addView(createMenuItem(context, dialog, height, R.drawable.auth, "Вход") {
+    //    authPopup(context, width)
+    //})
 
     dialog.show() // Показываем диалог
 }

@@ -1,4 +1,4 @@
-package com.example.nestor
+package com.nestor.nestor
 
 import android.annotation.SuppressLint
 import android.content.ContentValues

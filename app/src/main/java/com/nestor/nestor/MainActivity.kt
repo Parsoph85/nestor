@@ -1,4 +1,4 @@
-package com.example.nestor
+package com.nestor.nestor
 
 import android.annotation.SuppressLint
 import android.app.Activity
@@ -13,6 +13,7 @@ import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.res.ResourcesCompat
+import com.example.nestor.R
 
 class MainActivity : AppCompatActivity() {
     private lateinit var buttonsLayout: LinearLayout

@@ -1,4 +1,4 @@
-package com.example.nestor
+package com.nestor.nestor
 
 import android.content.Context
 import android.graphics.Color
@@ -10,6 +10,7 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
+import com.example.nestor.R
 
 fun labelMenu(context: Context, widthFun: Int, heightFun: Int, notesDatabaseHelper: NotesDatabaseHelper, onSortingSelected: (Int) -> Unit) {
     val layoutInflater = LayoutInflater.from(context)
@@ -103,7 +104,7 @@ fun editLabelMenu(context: Context, width: Int, height: Int, notesDatabaseHelper
     dialog.show()
 }
 
-private fun editLabelPopup(context: Context, labelId: Int, widthFn: Int, notesDatabaseHelper: NotesDatabaseHelper,  onSortingSelected: (Int) -> Unit) {
+private fun editLabelPopup(context: Context, labelId: Int, widthFn: Int, notesDatabaseHelper: NotesDatabaseHelper, onSortingSelected: (Int) -> Unit) {
 
     // Загружаем разметку из XML
     val dialogView = LayoutInflater.from(context).inflate(R.layout.dialog_sorting, null)

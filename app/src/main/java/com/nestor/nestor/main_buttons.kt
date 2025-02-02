@@ -1,4 +1,4 @@
-package com.example.nestor
+package com.nestor.nestor
 
 import android.content.Context
 import android.content.Intent
@@ -14,6 +14,7 @@ import android.widget.Button
 import android.widget.LinearLayout
 import androidx.activity.result.ActivityResultLauncher
 import androidx.core.content.res.ResourcesCompat
+import com.example.nestor.R
 
 fun createNoteButton(note: NoteMin, context: Context, width: Int, elementHeight: Int, resultLauncher: ActivityResultLauncher<Intent>): Button {
     val button = Button(context).apply {

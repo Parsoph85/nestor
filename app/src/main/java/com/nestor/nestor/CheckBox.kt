@@ -1,7 +1,5 @@
-import android.graphics.Canvas
-import android.graphics.Paint
-import android.text.style.ReplacementSpan
-import android.widget.CheckBox
+package com.nestor.nestor
+
 /*
 class CheckBoxSpan(private val checkBox: CheckBox) : ReplacementSpan() {
     var isChecked: Boolean = false

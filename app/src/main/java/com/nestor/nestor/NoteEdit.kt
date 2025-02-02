@@ -1,4 +1,4 @@
-package com.example.nestor
+package com.nestor.nestor
 
 import android.annotation.SuppressLint
 import android.app.Activity
@@ -25,6 +25,7 @@ import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.res.ResourcesCompat
+import com.example.nestor.R
 import java.io.File
 import java.io.FileOutputStream
 import kotlin.properties.Delegates
