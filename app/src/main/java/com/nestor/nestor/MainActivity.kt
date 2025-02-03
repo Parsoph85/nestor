@@ -3,6 +3,7 @@ package com.nestor.nestor
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Intent
+import android.os.Build
 import android.os.Bundle
 import android.util.DisplayMetrics
 import android.widget.Button
@@ -37,10 +38,15 @@ class MainActivity : AppCompatActivity() {
 
         // Метрики экрана
         val displayMetrics = DisplayMetrics()
-        val display = windowManager.currentWindowMetrics
-        display.bounds.apply {
-            displayMetrics.widthPixels = width()
-            displayMetrics.heightPixels = height()
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            val display = windowManager.currentWindowMetrics
+            display.bounds.apply {
+                displayMetrics.widthPixels = width()
+                displayMetrics.heightPixels = height()
+            }
+        } else {
+            windowManager.defaultDisplay.getMetrics(displayMetrics)
         }
         width = displayMetrics.widthPixels
         height = displayMetrics.heightPixels

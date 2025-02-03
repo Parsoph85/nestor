@@ -462,13 +462,15 @@ class NotesDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE
     }
 
     fun deleteLabel(oldLabel: String, newLabel: String) {
-        val db = writableDatabase
-        val values = ContentValues().apply {
-            put(COLUMN_NOTE_LABEL, newLabel)
+        if (oldLabel.toInt() > 1) {
+            val db = writableDatabase
+            val values = ContentValues().apply {
+                put(COLUMN_NOTE_LABEL, newLabel)
+            }
+            db.update(TABLE_NOTES, values, "$COLUMN_NOTE_LABEL = ?", arrayOf(oldLabel))
+            db.delete(TABLE_LABELS, "$COLUMN_LABELS_ID = ?", arrayOf(oldLabel))
+            db.close()
         }
-        db.update(TABLE_NOTES, values, "$COLUMN_NOTE_LABEL = ?", arrayOf(oldLabel))
-        db.delete(TABLE_LABELS, "$COLUMN_LABELS_ID = ?", arrayOf(oldLabel))
-        db.close()
     }
 
 

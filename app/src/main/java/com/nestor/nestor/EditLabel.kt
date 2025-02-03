@@ -84,25 +84,41 @@ fun editLabelMenu(context: Context, width: Int, height: Int, notesDatabaseHelper
     val layoutInflater = LayoutInflater.from(context)
     val dialogView = layoutInflater.inflate(R.layout.main_menu, null)
     val menuLayout = dialogView.findViewById<LinearLayout>(R.id.menuLayout)
+    if (labelId == 1){
+        Toast.makeText(context, "Нельзя удалить или изменить данную метку", Toast.LENGTH_SHORT).show()
+    }else {
 
     // Создание диалога
     val builder = AlertDialog.Builder(context).setView(dialogView)
     val dialog = builder.create()
 
-    // Добавление элементов меню
-    menuLayout.addView(createMenuItem(context, dialog, height, R.drawable.edit, "Редактирование") {
-        editLabelPopup(context, labelId, width, notesDatabaseHelper){ selectedSort -> onSortingSelected(selectedSort) }
+        // Добавление элементов меню
+        menuLayout.addView(
+            createMenuItem(
+                context,
+                dialog,
+                height,
+                R.drawable.edit,
+                "Редактирование"
+            ) {
+                editLabelPopup(
+                    context,
+                    labelId,
+                    width,
+                    notesDatabaseHelper
+                ) { selectedSort -> onSortingSelected(selectedSort) }
 
-        dialog.dismiss()
-    })
-    menuLayout.addView(createMenuItem(context, dialog, height, R.drawable.delete, "Удаление") {
-        notesDatabaseHelper.deleteLabel(labelId.toString(), "1")
-        notesDatabaseHelper.getSorting()?.let { onSortingSelected(it) }
-        dialog.dismiss()
-    })
+                dialog.dismiss()
+            })
+        menuLayout.addView(createMenuItem(context, dialog, height, R.drawable.delete, "Удаление") {
+
+            notesDatabaseHelper.deleteLabel(labelId.toString(), "1")
+            notesDatabaseHelper.getSorting()?.let { onSortingSelected(it) }
+            dialog.dismiss()
+        })
 
     dialog.show()
-}
+}}
 
 private fun editLabelPopup(context: Context, labelId: Int, widthFn: Int, notesDatabaseHelper: NotesDatabaseHelper, onSortingSelected: (Int) -> Unit) {
 
