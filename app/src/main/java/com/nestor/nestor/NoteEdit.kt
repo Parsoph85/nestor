@@ -51,7 +51,7 @@ class NoteEdit : AppCompatActivity() {
     private var uidDb2: String = ""
     private var width = 0
     private var height = 0
-
+    private var noteThemeDb = ""
 
     @SuppressLint("SetTextI18n")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -93,8 +93,7 @@ class NoteEdit : AppCompatActivity() {
         // Получение данных из БД: заметка ...
 
         val note = notesDatabaseHelper.getNoteById(noteIdDb)
-        println("TEST NE $note")
-        val noteThemeDb: String = note?.theme ?: "Без темы..."
+        noteThemeDb = note?.theme ?: "Без темы..."
         val noteTextDb: String = note?.text.toString()
         noteLabelDb = note?.label?.toInt() ?: 1
         uidDb1 = note?.uid1.toString()
@@ -128,7 +127,13 @@ class NoteEdit : AppCompatActivity() {
         editThemeParams.height = height / 15
         editTheme.layoutParams = editThemeParams
         editTheme.typeface = ResourcesCompat.getFont(this, R.font.roboto_mono)
-        editTheme.setText(noteThemeDb)
+
+        if (noteThemeDb == "Новая заметка"){
+            editTheme.hint = noteThemeDb
+
+        }else{
+            editTheme.setText(noteThemeDb)
+        }
         editTheme.textSize = (height / 80).toFloat() // resources.configuration.fontScale
         editTheme.filters = arrayOf(InputFilter { source, _, _, dest, dstart, dend ->
             val currentText = dest.toString().trim()
@@ -206,6 +211,8 @@ class NoteEdit : AppCompatActivity() {
 
         deleteButton.setOnClickListener {
             notesDatabaseHelper.deleteNote(noteIdDb)
+            val resultIntent = Intent()
+            setResult(Activity.RESULT_OK, resultIntent)
             finish()
         }
 
@@ -222,7 +229,8 @@ class NoteEdit : AppCompatActivity() {
             val enteredTheme = editTheme.text.toString()
             var enteredText = editText.text.toString()
             var modifiedTheme = enteredTheme
-            if ((enteredTheme == "Новая заметка" && enteredText != "Введите текст") || enteredTheme == "") {
+            if (enteredTheme == ""){modifiedTheme = noteThemeDb}
+            if (enteredTheme == "Новая заметка" && enteredText != "Введите текст") {
                 if (enteredText == ""){enteredText = "Пусто. А жаль."}
                 modifiedTheme = enteredText.take(26) + "..."
             }
@@ -352,15 +360,12 @@ class NoteEdit : AppCompatActivity() {
     private fun saveNoteAndExit() {
         val enteredTheme = editTheme.text.toString()
         var enteredText = editText.text.toString()
-
         var modifiedTheme = enteredTheme
-        if ((enteredTheme == "Новая заметка" && enteredText != "Введите текст") || enteredTheme == "") {
-            if (enteredText == "") {
-                enteredText = "Пусто. А жаль."
-            }
+        if (enteredTheme == ""){modifiedTheme = noteThemeDb}
+        if (enteredTheme == "Новая заметка" && enteredText != "Введите текст") {
+            if (enteredText == ""){enteredText = "Пусто. А жаль."}
             modifiedTheme = enteredText.take(26) + "..."
         }
-
         notesDatabaseHelper.updateNote(noteIdDb.toLong(), modifiedTheme, enteredText, noteLabelDb.toString(), "", false, uidDb1, uidDb2)
 
         // Создаем Intent для передачи результата

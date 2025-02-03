@@ -28,7 +28,7 @@
             android:layout_weight="1"
             android:background="#00FFFFFF"
             android:gravity="center|start|left|center_vertical"
-            android:inputType="text"
+            android:inputType="textCapSentences|text"
             android:text=""
             android:textAlignment="center"
             android:textColor="#40474f"/>

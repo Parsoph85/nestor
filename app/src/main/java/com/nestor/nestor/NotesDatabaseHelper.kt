@@ -99,9 +99,7 @@ class NotesDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE
 
 
         val secretKey = generateKey()
-        // Автоматическое добавление значений в таблицу setting
         db.execSQL("INSERT INTO $TABLE_SETTING ($COLUMN_SETTING_SORTING, $COLUMN_SETTING_SHA) VALUES (0, '$secretKey')")
-        // Автоматическое добавление значений в таблицу labels
         db.execSQL("INSERT INTO $TABLE_LABELS ($COLUMN_LABELS_NAME, $COLUMN_LABEL_COLOR1, $COLUMN_LABEL_COLOR2, $COLUMN_NOTE_UID1, $COLUMN_NOTE_UID2) VALUES ('Без темы...', '#FFFFFF', '#ced9f2','','')")
     }
 
@@ -122,9 +120,8 @@ class NotesDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE
 
         var theme = "Новая заметка"
         var text = "Введите текст"
-        theme = encrypt(theme)
+        theme = theme.map { "$it~" }.joinToString("")
         text = encrypt(text)
-
         val values = ContentValues().apply {
             put(COLUMN_NOTE_THEME, theme)
             put(COLUMN_NOTE_TEXT, text)
@@ -132,18 +129,12 @@ class NotesDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE
             put(COLUMN_NOTE_TAGS, "")
             put(COLUMN_NOTE_DELETED, false)
         }
-
         val uid1: String = generateRandomAlphanumeric()
         val uid2: String = generateRandomAlphanumeric()
         values.put(COLUMN_NOTE_UID1, uid1)
         values.put(COLUMN_NOTE_UID2, uid2)
-
-        // Вставляем новую запись и получаем ее ID
         val newRowId = db.insert(TABLE_NOTES, null, values)
-        // Закрываем базу данных
         db.close()
-
-        // Возвращаем ID новой записи
         return newRowId
     }
 
@@ -159,7 +150,6 @@ class NotesDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE
             null,
             null
         )
-
         cursor.use {
             if (it.moveToFirst()) {
                 val idIndex = it.getColumnIndex(COLUMN_NOTE_ID)
@@ -174,7 +164,7 @@ class NotesDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE
 
                 return Note(
                     id = if (idIndex != -1) it.getInt(idIndex) else -1,
-                    theme = if (themeIndex != -1) decrypt(it.getString(themeIndex)) else "",
+                    theme = if (themeIndex != -1) it.getString(themeIndex).withIndex().filter { (index, _) -> index % 2 == 0 }.joinToString("") { it.value.toString() } else "",
                     text = if (textIndex != -1) decrypt(it.getString(textIndex)) else null,
                     label = if (labelIndex != -1) it.getString(labelIndex) else null,
                     tags = if (tagsIndex != -1) it.getString(tagsIndex) else null,
@@ -222,7 +212,7 @@ class NotesDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE
 
                 if (themeColumnIndex != -1 && idColumnIndex != -1 && labelColumnIndex != -1 && textColumnIndex != -1) {
                     do {
-                        val theme = decrypt(cursor.getString(themeColumnIndex)) // Получаем строку с темой
+                        val theme = cursor.getString(themeColumnIndex).withIndex().filter { (index, _) -> index % 2 == 0 }.joinToString("") { it.value.toString() } // Получаем строку с темой
                         val idNote = cursor.getInt(idColumnIndex) // Получаем ID заметки как целое число
                         val label = cursor.getString(labelColumnIndex) // Получаем цвет метки
                         val previewText = decrypt(cursor.getString(textColumnIndex))
@@ -247,12 +237,11 @@ class NotesDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE
     }
 
     // Обновляем
-    fun updateNote(id: Long, themeF: String, textF: String, label: String, tags: String, deleted: Boolean, uidDb1: String, uidDb2: String) {
+    fun updateNote(id: Long, theme: String, textF: String, label: String, tags: String, deleted: Boolean, uidDb1: String, uidDb2: String) {
         val db = writableDatabase
-        val theme = encrypt(themeF)
         val text = encrypt(textF)
         val values = ContentValues().apply {
-            put(COLUMN_NOTE_THEME, theme)
+            put(COLUMN_NOTE_THEME, theme.map { "$it~" }.joinToString(""))
             put(COLUMN_NOTE_TEXT, text)
             put(COLUMN_NOTE_LABEL, label)
             put(COLUMN_NOTE_TAGS, tags)
@@ -283,12 +272,6 @@ class NotesDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE
         db.update(TABLE_NOTES, values, "$COLUMN_NOTE_ID = ?", arrayOf(id.toString()))
         db.close()
     }
-
-
-
-
-
-
 
 
 
