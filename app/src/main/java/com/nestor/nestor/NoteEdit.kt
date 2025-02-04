@@ -180,6 +180,12 @@ class NoteEdit : AppCompatActivity() {
 
         // Поле редактирования текста
 
+        if (noteTextDb == "Введите текст"){
+            editText.hint = noteTextDb
+
+        }else{
+            editText.setText(noteTextDb)
+        }
         editText.setText(noteTextDb)
         updateClickableSpan()
         editText.typeface = ResourcesCompat.getFont(this, R.font.roboto_mono)
