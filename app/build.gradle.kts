@@ -11,8 +11,8 @@ android {
         applicationId = "com.nestor.nestor"
         minSdkVersion(rootProject.extra["defaultMinSdkVersion"] as Int)
         targetSdk = 35
-        versionCode = 3
-        versionName = "1.2"
+        versionCode = 5
+        versionName = "1.22"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

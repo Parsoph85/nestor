@@ -4,10 +4,10 @@
     <selectionStates>
       <SelectionState runConfigName="nestor">
         <option name="selectionMode" value="DROPDOWN" />
-        <DropdownSelection timestamp="2025-02-03T07:02:48.343345200Z">
+        <DropdownSelection timestamp="2025-02-07T13:57:13.016776600Z">
           <Target type="DEFAULT_BOOT">
             <handle>
-              <DeviceId pluginId="LocalEmulator" identifier="path=C:\Users\ya\.android\avd\screenshot_API_30.avd" />
+              <DeviceId pluginId="LocalEmulator" identifier="path=C:\Users\ya\.android\avd\screenshot_API_29.avd" />
             </handle>
           </Target>
         </DropdownSelection>

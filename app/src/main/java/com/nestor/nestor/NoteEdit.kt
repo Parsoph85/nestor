@@ -287,8 +287,8 @@ class NoteEdit : AppCompatActivity() {
 
     private fun addCheckbox() {
         val cursorPosition = editText.selectionStart
-        val checkboxSpan = createCheckboxSpan()
         val spannableString = SpannableString("☐" + " ") // Символ для чекбокса
+        val checkboxSpan = createCheckboxSpan(cursorPosition) // Передаем позицию чекбокса
         spannableString.setSpan(checkboxSpan, 0, spannableString.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
 
         // Вставляем чекбокс в EditText
@@ -299,27 +299,19 @@ class NoteEdit : AppCompatActivity() {
         editText.setSelection(cursorPosition + spannableString.length)
     }
 
-    private fun createCheckboxSpan(): ClickableSpan {
+    private fun createCheckboxSpan(position: Int): ClickableSpan {
         return object : ClickableSpan() {
             override fun onClick(widget: View) {
                 val currentText = editText.text.toString()
-                val cursorPosition = editText.selectionStart - 2
-                val checkboxPosition = currentText.indexOf("☐", cursorPosition).takeIf { it != -1 }
-                    ?: currentText.indexOf("☑", cursorPosition).takeIf { it != -1 }
+                val currentChar = currentText[position]
+                // Заменяем его на противоположный
+                val newChar = if (currentChar == '☐') '☑' else '☐'
+                // Обновляем текст в EditText
+                val newText = currentText.replaceRange(position, position + 1, newChar.toString())
+                editText.setText(newText)
+                editText.setSelection(position) // Устанавливаем курсор на место чекбокса
 
-                // Если чекбокс найден
-                if (checkboxPosition != null) {
-                    // Определяем текущий символ чекбокса
-                    val currentChar = currentText[checkboxPosition]
-                    // Заменяем его на противоположный
-                    val newChar = if (currentChar == '☐') '☑' else '☐'
-                    // Обновляем текст в EditText
-                    val newText = currentText.replaceRange(checkboxPosition, checkboxPosition + 1, newChar.toString())
-                    editText.setText(newText)
-                    editText.setSelection(checkboxPosition) // Устанавливаем курсор на место чекбокса
-
-                    updateClickableSpan()
-                }
+                updateClickableSpan()
             }
         }
     }
@@ -345,7 +337,7 @@ class NoteEdit : AppCompatActivity() {
         }
 
         for (position in checkboxPositions) {
-            spannable.setSpan(createCheckboxSpan(), position, position + 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+            spannable.setSpan(createCheckboxSpan(position), position, position + 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
         }
 
         editText.text = spannable // Присваиваем изменяемый текст обратно в EditText
