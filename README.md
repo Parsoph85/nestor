@@ -25,5 +25,6 @@
 
 > ## Ссылки имеют место быть по готовности каждого из элементов.
 > На данный момент мобильная версия в Русторе https://www.rustore.ru/catalog/app/com.nestor.nestor.
+> 
 > Ссылка на гит для версии на ПК (на питоне) https://github.com/Parsoph85/nestor_desktop
 
