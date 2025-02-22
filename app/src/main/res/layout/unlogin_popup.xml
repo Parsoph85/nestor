@@ -18,29 +18,11 @@
             android:layout_height="wrap_content"
             app:srcCompat="@drawable/auth" />
 
-        <EditText
-            android:id="@+id/editLogin"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:ems="10"
-            android:hint="E-mail"
-            android:inputType="text"
-            android:textAlignment="center" />
-
-        <EditText
-            android:id="@+id/editPassword"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:ems="10"
-            android:hint="Пароль"
-            android:inputType="textPassword"
-            android:textAlignment="center" />
-
         <Button
-            android:id="@+id/authButton"
+            android:id="@+id/unloginButton"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Войти" />
+            android:text="Выход" />
 
     </LinearLayout>
 </androidx.constraintlayout.widget.ConstraintLayout>

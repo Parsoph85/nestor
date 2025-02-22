@@ -7,6 +7,7 @@ import android.database.Cursor
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
 import android.util.Base64
+import org.json.JSONObject
 import javax.crypto.Cipher
 import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
@@ -83,8 +84,8 @@ class NotesDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE
         const val COLUMN_SETTING_CH_DATA = "ch_data"
         const val COLUMN_SETTING_SHA = "sha"
 
-        const val COLUMN_LABELS_ID = "id"
-        const val COLUMN_LABELS_NAME = "name"
+        const val COLUMN_LABEL_ID = "id"
+        const val COLUMN_LABEL_NAME = "name"
         const val COLUMN_LABEL_COLOR1 = "color1"
         const val COLUMN_LABEL_COLOR2 = "color2"
         const val COLUMN_LABEL_UID1 = "uid1"
@@ -95,12 +96,12 @@ class NotesDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE
         // Создание таблиц при первой установке приложения
         db.execSQL("CREATE TABLE $TABLE_NOTES ($COLUMN_NOTE_ID INTEGER PRIMARY KEY AUTOINCREMENT, $COLUMN_NOTE_THEME TEXT, $COLUMN_NOTE_TEXT TEXT, $COLUMN_NOTE_LABEL TEXT, $COLUMN_NOTE_TAGS TEXT, $COLUMN_NOTE_CH_DATA TIMESTAMP DEFAULT CURRENT_TIMESTAMP, $COLUMN_NOTE_DELETED BOOLEAN, $COLUMN_NOTE_UID1 TEXT, $COLUMN_NOTE_UID2 TEXT)")
         db.execSQL("CREATE TABLE $TABLE_SETTING ($COLUMN_SETTING_ID INTEGER PRIMARY KEY AUTOINCREMENT, $COLUMN_SETTING_SORTING INT, $COLUMN_SETTING_UNAME TEXT, $COLUMN_SETTING_PWWD TEXT, $COLUMN_SETTING_CH_DATA TIMESTAMP DEFAULT CURRENT_TIMESTAMP, $COLUMN_SETTING_SHA SECRETKEY)")
-        db.execSQL("CREATE TABLE $TABLE_LABELS ($COLUMN_LABELS_ID INTEGER PRIMARY KEY AUTOINCREMENT, $COLUMN_LABELS_NAME TEXT, $COLUMN_LABEL_COLOR1 TEXT, $COLUMN_LABEL_COLOR2 TEXT, $COLUMN_NOTE_UID1 TEXT, $COLUMN_NOTE_UID2 TEXT)")
+        db.execSQL("CREATE TABLE $TABLE_LABELS ($COLUMN_LABEL_ID INTEGER PRIMARY KEY AUTOINCREMENT, $COLUMN_LABEL_NAME TEXT, $COLUMN_LABEL_COLOR1 TEXT, $COLUMN_LABEL_COLOR2 TEXT, $COLUMN_NOTE_UID1 TEXT, $COLUMN_NOTE_UID2 TEXT)")
 
 
         val secretKey = generateKey()
         db.execSQL("INSERT INTO $TABLE_SETTING ($COLUMN_SETTING_SORTING, $COLUMN_SETTING_SHA) VALUES (0, '$secretKey')")
-        db.execSQL("INSERT INTO $TABLE_LABELS ($COLUMN_LABELS_NAME, $COLUMN_LABEL_COLOR1, $COLUMN_LABEL_COLOR2, $COLUMN_NOTE_UID1, $COLUMN_NOTE_UID2) VALUES ('Без темы...', '#FFFFFF', '#ced9f2','','')")
+        db.execSQL("INSERT INTO $TABLE_LABELS ($COLUMN_LABEL_NAME, $COLUMN_LABEL_COLOR1, $COLUMN_LABEL_COLOR2, $COLUMN_NOTE_UID1, $COLUMN_NOTE_UID2) VALUES ('Без темы...', '#FFFFFF', '#ced9f2','','')")
     }
 
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
@@ -118,9 +119,8 @@ class NotesDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE
     fun addNote(): Long {
         val db = writableDatabase
 
-        var theme = "Новая заметка"
+        val theme = "Новая заметка"
         var text = "Введите текст"
-        theme = theme.map { "$it~" }.joinToString("")
         text = encrypt(text)
         val values = ContentValues().apply {
             put(COLUMN_NOTE_THEME, theme)
@@ -164,7 +164,7 @@ class NotesDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE
 
                 return Note(
                     id = if (idIndex != -1) it.getInt(idIndex) else -1,
-                    theme = if (themeIndex != -1) it.getString(themeIndex).withIndex().filter { (index, _) -> index % 2 == 0 }.joinToString("") { it.value.toString() } else "",
+                    theme = if (themeIndex != -1) it.getString(themeIndex) else "",
                     text = if (textIndex != -1) decrypt(it.getString(textIndex)) else null,
                     label = if (labelIndex != -1) it.getString(labelIndex) else null,
                     tags = if (tagsIndex != -1) it.getString(tagsIndex) else null,
@@ -212,7 +212,7 @@ class NotesDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE
 
                 if (themeColumnIndex != -1 && idColumnIndex != -1 && labelColumnIndex != -1 && textColumnIndex != -1) {
                     do {
-                        val theme = cursor.getString(themeColumnIndex).withIndex().filter { (index, _) -> index % 2 == 0 }.joinToString("") { it.value.toString() } // Получаем строку с темой
+                        val theme = cursor.getString(themeColumnIndex)
                         val idNote = cursor.getInt(idColumnIndex) // Получаем ID заметки как целое число
                         val label = cursor.getString(labelColumnIndex) // Получаем цвет метки
                         val previewText = decrypt(cursor.getString(textColumnIndex))
@@ -241,7 +241,7 @@ class NotesDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE
         val db = writableDatabase
         val text = encrypt(textF)
         val values = ContentValues().apply {
-            put(COLUMN_NOTE_THEME, theme.map { "$it~" }.joinToString(""))
+            put(COLUMN_NOTE_THEME, theme)
             put(COLUMN_NOTE_TEXT, text)
             put(COLUMN_NOTE_LABEL, label)
             put(COLUMN_NOTE_TAGS, tags)
@@ -275,15 +275,13 @@ class NotesDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE
 
 
 
-
-
     // Функции CRUD для таблицы labels
 
     // Добавляем новую метку
     fun addLabel(name: String, color1: String, color2: String): Long {
         return writableDatabase.use { db ->
             val values = ContentValues().apply {
-                put(COLUMN_LABELS_NAME, name)
+                put(COLUMN_LABEL_NAME, name)
                 put(COLUMN_LABEL_COLOR1, color1)
                 put(COLUMN_LABEL_COLOR2, color2)
             }
@@ -305,7 +303,7 @@ class NotesDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE
             do {
                 // Получаем индексы всех необходимых колонок
                 val idColumnIndex = cursor.getColumnIndex("id") // Укажите правильное имя колонки для ID
-                val nameColumnIndex = cursor.getColumnIndex(COLUMN_LABELS_NAME)
+                val nameColumnIndex = cursor.getColumnIndex(COLUMN_LABEL_NAME)
                 val color1ColumnIndex = cursor.getColumnIndex("color1") // Укажите правильное имя колонки для color1
                 val color2ColumnIndex = cursor.getColumnIndex("color2") // Укажите правильное имя колонки для color2
                 val uid1Index = cursor.getColumnIndex("uid1")
@@ -336,13 +334,13 @@ class NotesDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE
     fun updateLabel(id: Int, name: String, color1: String, color2: String): Boolean {
         val db = writableDatabase
         val values = ContentValues().apply {
-            put(COLUMN_LABELS_NAME, name)
+            put(COLUMN_LABEL_NAME, name)
             put(COLUMN_LABEL_COLOR1, color1)
             put(COLUMN_LABEL_COLOR2, color2)
         }
 
         return try {
-            val rowsAffected = db.update(TABLE_LABELS, values, "$COLUMN_LABELS_ID = ?", arrayOf(id.toString()))
+            val rowsAffected = db.update(TABLE_LABELS, values, "$COLUMN_LABEL_ID = ?", arrayOf(id.toString()))
             rowsAffected > 0 // Возвращаем true, если строки обновлены
         } catch (e: Exception) {
             // Обрабатывать исключение (например, логировать его)
@@ -365,7 +363,7 @@ class NotesDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE
             cursor = db.query(
                 TABLE_LABELS,
                 null,
-                "$COLUMN_LABELS_ID = ?",
+                "$COLUMN_LABEL_ID = ?",
                 arrayOf(id.toString()),
                 null,
                 null,
@@ -374,8 +372,8 @@ class NotesDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE
 
             if (cursor.moveToFirst()) {
                 // Найдена метка с переданным id
-                val idColumnIndex = cursor.getColumnIndex(COLUMN_LABELS_ID)
-                val nameColumnIndex = cursor.getColumnIndex(COLUMN_LABELS_NAME)
+                val idColumnIndex = cursor.getColumnIndex(COLUMN_LABEL_ID)
+                val nameColumnIndex = cursor.getColumnIndex(COLUMN_LABEL_NAME)
                 val color1ColumnIndex = cursor.getColumnIndex(COLUMN_LABEL_COLOR1)
                 val color2ColumnIndex = cursor.getColumnIndex(COLUMN_LABEL_COLOR2)
                 val uid1Index = cursor.getColumnIndex(COLUMN_LABEL_UID1)
@@ -403,7 +401,7 @@ class NotesDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE
                 cursor = db.query(
                     TABLE_LABELS,
                     null,
-                    "$COLUMN_LABELS_ID = ?",
+                    "$COLUMN_LABEL_ID = ?",
                     arrayOf("1"), // Запрос по id = 1
                     null,
                     null,
@@ -412,8 +410,8 @@ class NotesDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE
 
                 if (cursor.moveToFirst()) {
                     // Найдена метка с id = 1
-                    val idColumnIndex = cursor.getColumnIndex(COLUMN_LABELS_ID)
-                    val nameColumnIndex = cursor.getColumnIndex(COLUMN_LABELS_NAME)
+                    val idColumnIndex = cursor.getColumnIndex(COLUMN_LABEL_ID)
+                    val nameColumnIndex = cursor.getColumnIndex(COLUMN_LABEL_NAME)
                     val color1ColumnIndex = cursor.getColumnIndex(COLUMN_LABEL_COLOR1)
                     val color2ColumnIndex = cursor.getColumnIndex(COLUMN_LABEL_COLOR2)
                     val uid1Index = cursor.getColumnIndex(COLUMN_LABEL_UID1)
@@ -432,15 +430,15 @@ class NotesDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE
 
                         Label(id = labelId, name = name, color1 = color1, color2 = color2, uid1 = uid1, uid2 = uid2)
                     } else {
-                        null // Если столбцы не найдены, возвращаем null
+                        null
                     }
                 } else {
-                    null // Если метка с id = 1 тоже не найдена
+                    null
                 }
             }
         } finally {
-            cursor?.close() // Закрываем курсор, если он инициализирован
-            db.close()      // Закрываем базу данных
+            cursor?.close()
+            db.close()
         }
     }
 
@@ -451,15 +449,53 @@ class NotesDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE
                 put(COLUMN_NOTE_LABEL, newLabel)
             }
             db.update(TABLE_NOTES, values, "$COLUMN_NOTE_LABEL = ?", arrayOf(oldLabel))
-            db.delete(TABLE_LABELS, "$COLUMN_LABELS_ID = ?", arrayOf(oldLabel))
+            db.delete(TABLE_LABELS, "$COLUMN_LABEL_ID = ?", arrayOf(oldLabel))
             db.close()
         }
     }
 
 
 
+    fun saveCreds(login: String, password: String) {
+        val db = writableDatabase
+        val values = ContentValues().apply {
+            put(COLUMN_SETTING_UNAME, login)
+            put(COLUMN_SETTING_PWWD, password)
+        }
+        db.update(TABLE_SETTING, values, "$COLUMN_NOTE_ID = ?", arrayOf("1"))
+        db.close()
+    }
 
 
+    fun getCreds(): Pair<String?, String?>? {
+        val db = readableDatabase
+        var creds: Pair<String?, String?>? = null
+
+        val cursor = db.query(
+            TABLE_SETTING,
+            arrayOf(COLUMN_SETTING_UNAME, COLUMN_SETTING_PWWD),
+            "$COLUMN_LABEL_ID = ?",
+            arrayOf("1"),
+            null,
+            null,
+            null
+        )
+
+        return try {
+            if (cursor.moveToFirst()) {
+                val username = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_SETTING_UNAME))
+                val password = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_SETTING_PWWD))
+                creds = Pair(username, password) // Сохраняем имя пользователя и пароль в пару
+            }
+            creds // Возвращаем найденные учетные данные или null, если не найдено
+        } catch (e: Exception) {
+            e.printStackTrace() // Логируем ошибку для отладки
+            null // Возвращаем null в случае ошибки
+        } finally {
+            cursor.close() // Закрываем курсор
+            db.close()
+        }
+    }
 
 
     fun getSorting(): Int? {
@@ -469,7 +505,7 @@ class NotesDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE
         val cursor = db.query(
             TABLE_SETTING,
             arrayOf(COLUMN_SETTING_SORTING),
-            "$COLUMN_LABELS_ID = ?",
+            "$COLUMN_LABEL_ID = ?",
             arrayOf("1"),
             null,
             null,
@@ -501,7 +537,7 @@ class NotesDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE
         }
 
         return try {
-            val rowsAffected = db.update(TABLE_SETTING, values, "$COLUMN_LABELS_ID = ?", arrayOf("1"))
+            val rowsAffected = db.update(TABLE_SETTING, values, "$COLUMN_LABEL_ID = ?", arrayOf("1"))
             rowsAffected > 0 // Возвращаем true, если строки обновлены
         } catch (e: Exception) {
             e.printStackTrace() // Логируем ошибку для отладки
@@ -510,6 +546,203 @@ class NotesDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE
             db.close() // Закрываем базу данных
         }
     }
+
+
+
+    // Synchronization
+
+    fun sync(): String? {
+        val db = readableDatabase
+
+        val cursor = db.query(
+            TABLE_SETTING,
+            arrayOf(COLUMN_SETTING_UNAME, COLUMN_SETTING_PWWD, COLUMN_SETTING_SORTING),
+            "$COLUMN_LABEL_ID = ?",
+            arrayOf("1"),
+            null,
+            null,
+            null
+        )
+
+        if (cursor.moveToFirst()) {
+            val sorting = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_SETTING_SORTING)).toInt()
+
+            val clearNotes = mutableListOf<JSONObject>()
+            val clearLabels = mutableListOf<JSONObject>()
+
+            // Получаем все заметки для данного пользователя
+            val notesCursor = db.rawQuery("SELECT * FROM notes", null)
+            try {
+                while (notesCursor.moveToNext()) {
+                    var del = notesCursor.getInt(6)
+                    if (del!= 1){del = 0}
+                    val note = JSONObject().apply {
+                        put("id", notesCursor.getLong(0))
+                        put("theme", notesCursor.getString(1))
+                        put("text", decrypt(notesCursor.getString(2)))
+                        put("label", notesCursor.getString(3))
+                        put("tags", notesCursor.getString(4))
+                        put("ch_data", notesCursor.getString(5))
+                        put("deleted", del)
+                        put("uid1", notesCursor.getString(7))
+                        put("uid2", notesCursor.getString(8))
+                    }
+                    clearNotes.add(note)
+                }
+            } finally {
+                notesCursor.close()
+            }
+
+            val labelsCursor = db.rawQuery("SELECT * FROM labels", null)
+            try {
+                while (labelsCursor.moveToNext()) {
+                    val label = JSONObject().apply {
+                        put("id", labelsCursor.getLong(0))
+                        put("name", labelsCursor.getString(1))
+                        put("color1", labelsCursor.getString(2))
+                        put("color2", labelsCursor.getString(3))
+                        put("uid1", labelsCursor.getString(4))
+                        put("uid2", labelsCursor.getString(5))
+                    }
+                    clearLabels.add(label)
+                }
+            } finally {
+                labelsCursor.close()
+            }
+
+            val response = "\"sorting\": $sorting,\"notes\": $clearNotes,\"labels\":$clearLabels"
+
+            cursor.close()
+            db.close()
+            return response
+        }
+
+        cursor.close() // Закрываем cursor в случае, если ничего не найдено
+        db.close() // Закрываем базу данных
+        return null
+    }
+
+
+    fun updateLabelSyn(label: JSONObject, idLabelsSync: MutableMap<Int, Long>) {
+        val idLabel = label.getString("id").toInt()
+        val name = label.getString("name")
+        val color1 = label.getString("color1")
+        val color2 = label.getString("color2")
+        val uid1 = label.getString("uid1")
+        val uid2 = label.getString("uid2")
+
+        val db = writableDatabase
+        var cursor: Cursor? = null
+
+        try {
+            cursor = db.query(
+                TABLE_LABELS,
+                arrayOf(COLUMN_LABEL_ID),
+                "$COLUMN_LABEL_UID1 = ? AND $COLUMN_LABEL_UID2 = ?",
+                arrayOf(uid1, uid2),
+                null,
+                null,
+                null
+            )
+
+            if (cursor.moveToFirst()) {
+                val idLabelDB = cursor.getLong(0)
+                idLabelsSync[idLabel] = idLabelDB
+
+                val values = ContentValues().apply {
+                    put(COLUMN_LABEL_NAME, name)
+                    put(COLUMN_LABEL_COLOR1, color1)
+                    put(COLUMN_LABEL_COLOR2, color2)
+                }
+
+                db.update(TABLE_LABELS, values, "$COLUMN_LABEL_ID = ?", arrayOf(idLabelDB.toString()))
+
+            } else {
+                val values = ContentValues().apply {
+                    put(COLUMN_LABEL_NAME, name)
+                    put(COLUMN_LABEL_COLOR1, color1)
+                    put(COLUMN_LABEL_COLOR2, color2)
+                    put(COLUMN_LABEL_UID1, uid1)
+                    put(COLUMN_LABEL_UID2, uid2)
+                }
+
+                val idLabelDB = db.insert(TABLE_LABELS, null, values)
+                if (idLabelDB != -1L) {
+                    idLabelsSync[idLabel] = idLabelDB
+
+                }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        } finally {
+            cursor?.close()
+            db.close()
+        }
+    }
+
+
+    fun updateNoteSyn(note: JSONObject, idLabelsSync: MutableMap<Int, Long>) {
+        val theme = note.getString("theme")
+        val text = note.getString("text")
+        val label = idLabelsSync[note.getString("label").toInt()] ?: return
+        val tags = note.getString("tags")
+        val chData = note.getString("ch_data")
+        var deleted = note.getString("deleted")
+        if (deleted != "1"){deleted = "0"}
+        val uid1 = note.getString("uid1")
+        val uid2 = note.getString("uid2")
+
+
+        val db = writableDatabase
+        val cursor: Cursor?
+
+        // Выполняем запрос для проверки существующей записи
+            cursor = db.query(
+                TABLE_NOTES,
+                arrayOf(COLUMN_NOTE_ID, COLUMN_NOTE_CH_DATA),
+                "$COLUMN_NOTE_UID1 = ? AND $COLUMN_NOTE_UID2 = ?",
+                arrayOf(uid1, uid2),
+                null,
+                null,
+                null
+            )
+
+            if (cursor.count > 0) {
+                cursor.moveToFirst()
+                // Если запись найдена, проверяем дату изменения
+                val idNote: Int = cursor.getInt(0)
+                val chDataBD: String = cursor.getString(1)
+                if (chDataBD < chData) {
+
+                    // Обновляем значения только один раз
+                    val values = ContentValues().apply {
+                        put(COLUMN_NOTE_THEME, theme)
+                        put(COLUMN_NOTE_TEXT, encrypt(text))
+                        put(COLUMN_NOTE_LABEL, label)
+                        put(COLUMN_NOTE_TAGS, tags)
+                        put(COLUMN_NOTE_CH_DATA, chData)
+                        put(COLUMN_NOTE_DELETED, deleted)
+                    }
+                    db.update(TABLE_NOTES, values, "$COLUMN_NOTE_ID = ?", arrayOf(idNote.toString()))
+                }
+            } else {
+                // Если записи нет, добавляем новую
+                val values = ContentValues().apply {
+                    put(COLUMN_NOTE_THEME, theme)
+                    put(COLUMN_NOTE_TEXT, encrypt(text))
+                    put(COLUMN_NOTE_LABEL, label)
+                    put(COLUMN_NOTE_TAGS, tags)
+                    put(COLUMN_NOTE_CH_DATA, chData)
+                    put(COLUMN_NOTE_DELETED, deleted)
+                    put(COLUMN_NOTE_UID1, uid1)
+                    put(COLUMN_NOTE_UID2, uid2)
+                }
+                db.insert(TABLE_NOTES, null, values)
+            }
+        cursor.close()
+
+    }
+
 
 
     private fun generateRandomAlphanumeric(): String {

@@ -7,6 +7,7 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
+import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import com.example.nestor.R
 
@@ -33,11 +34,24 @@ fun mainMenu(context: Context, width: Int, height: Int, notesDatabaseHelper: Not
         exportAll(context, notesDatabaseHelper)
     })
 
-    //menuLayout.addView(createMenuItem(context, dialog, height, R.drawable.auth, "Вход") {
-    //    authPopup(context, width)
-    //})
 
-    dialog.show() // Показываем диалог
+    val notesDB= NotesDatabaseHelper(context)
+    val creds = notesDB.getCreds()
+
+    menuLayout.addView(createMenuItem(context, dialog, height, R.drawable.auth, "Авторизация") {
+        if (creds?.first == null || creds.second == null || creds.first == "" || creds.second == "null" ) {
+            if (context is AppCompatActivity) {
+                authPopup(context, width)
+            }
+        }else{
+            if (context is AppCompatActivity) {
+                unloginPopup(context, width)
+            }
+        }
+    }
+    )
+
+    dialog.show()
 }
 
 // Функция для создания элемента меню

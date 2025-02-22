@@ -11,8 +11,8 @@ android {
         applicationId = "com.nestor.nestor"
         minSdkVersion(rootProject.extra["defaultMinSdkVersion"] as Int)
         targetSdk = 35
-        versionCode = 5
-        versionName = "1.22"
+        versionCode = 7
+        versionName = "1.31"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -45,4 +45,5 @@ dependencies {
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
+    implementation("com.squareup.okhttp3:okhttp:4.9.3")
 }

@@ -34,7 +34,7 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.main_activity)
-
+        syncFromServ(this)
 
         // Метрики экрана
         val displayMetrics = DisplayMetrics()
@@ -61,6 +61,7 @@ class MainActivity : AppCompatActivity() {
         mainLabel = findViewById(R.id.mainLabel)
         addButton = findViewById(R.id.addButton)
         settingButton = findViewById(R.id.settingButton)
+
 
 
         // Получение отклика
@@ -135,6 +136,11 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    override fun onPause() {
+        super.onPause()
+        syncToServ(this)
+    }
+
 
     // Функция перезагрузки тем - Обновление
     private fun reloadNotes() {
@@ -162,5 +168,4 @@ class MainActivity : AppCompatActivity() {
         }
         resultLauncher.launch(intent)
     }
-
 }
