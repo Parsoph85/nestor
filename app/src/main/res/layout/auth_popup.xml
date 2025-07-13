@@ -1,46 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/mainLayout"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:gravity="center"
+    android:orientation="vertical"
+    android:padding="24dp">
 
-    <LinearLayout
-        android:id="@+id/mainLayout"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:gravity="center|center_vertical"
-        android:orientation="vertical">
+    <Button
+        android:id="@+id/authButton"
+        android:layout_width="120dp"
+        android:layout_height="120dp"
+        android:background="@drawable/ic_yandex_logo" />
 
-        <ImageView
-            android:id="@+id/imageView"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            app:srcCompat="@drawable/auth" />
-
-        <EditText
-            android:id="@+id/editLogin"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:ems="10"
-            android:hint="E-mail"
-            android:inputType="text"
-            android:textAlignment="center" />
-
-        <EditText
-            android:id="@+id/editPassword"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:ems="10"
-            android:hint="Пароль"
-            android:inputType="textPassword"
-            android:textAlignment="center" />
-
-        <Button
-            android:id="@+id/authButton"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Войти" />
-
-    </LinearLayout>
-</androidx.constraintlayout.widget.ConstraintLayout>
+</LinearLayout>

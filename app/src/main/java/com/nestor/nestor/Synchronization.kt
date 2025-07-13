@@ -1,131 +1,93 @@
 package com.nestor.nestor
 
-import android.annotation.SuppressLint
 import android.content.Context
-import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.OkHttpClient
-import okhttp3.Request
-import okhttp3.RequestBody.Companion.toRequestBody
-import okhttp3.Response
 import okio.IOException
-import org.json.JSONObject
 import java.io.File
-import java.util.concurrent.CountDownLatch
-import kotlin.concurrent.thread
+import java.io.FileOutputStream
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import org.json.JSONArray
+import org.json.JSONObject
 
-private var address: String = "https://nestornote.ru"
-private var connect: Boolean = false
-private var login: String = ""
-private var password: String = ""
-private val idLabelsSync = mutableMapOf<Int, Long>()
-private var dostup: Boolean = false
-private val client = OkHttpClient()
 
-fun syncFromServ(context: Context){
-    dostup = checkServerSync(context)
 
-    if (dostup) {
-        val notesDatabaseHelper = NotesDatabaseHelper(context)
-        val jsonLoginRequest = "{\"login\": \"$login\", \"password\": \"$password\"}"
-        val mediaType = "application/json".toMediaType()
-        val requestBody = jsonLoginRequest.toRequestBody(mediaType)
-        val loginUrl = "$address/api/v1/login"
+fun syncToServ(context: Context) {
 
-        thread {
-            val request = Request.Builder()
-                .url(loginUrl)
-                .post(requestBody)
-                .build()
+    val notesDatabaseHelper = NotesDatabaseHelper(context)
+    val creds = notesDatabaseHelper.getCreds()
+    if (!creds.isNullOrEmpty()) {
+        val syncData = notesDatabaseHelper.sync().toString()
+        val fileName = "nestornote.json"
+        val file = File(context.filesDir, fileName)
+        FileOutputStream(file).use { output ->
+            output.write(syncData.toByteArray(Charsets.UTF_8))
+        }
+        val token = notesDatabaseHelper.decrypt(creds)
 
+        // Запускаем корутину в IO-диспетчере
+        CoroutineScope(Dispatchers.IO).launch {
             try {
-                val response: Response = client.newCall(request).execute()
-                if (response.isSuccessful) {
-                    val responseMessage = response.body?.string()
-                    val jsonResponse = JSONObject(responseMessage)
-                    val requestStatus = jsonResponse.optString("request", "False")
-                    if (requestStatus == "True") {
-                        connect = true
-                    }
-                } else {
-                    val errorMessage = "Error: ${response.code} ${response.message}"
-                    errorLog(Exception(errorMessage), context)
-                }
+                uploadFileToYandexDisk(token, fileName, context)
             } catch (e: Exception) {
                 errorLog(e, context)
             }
-
-            if (connect) {
-                val jsonGetAllRequest = "{\"login\": \"$login\", \"password\": \"$password\"}"
-                val getAllUrl = "$address/api/v1/get_all"
-                val getAllRequestBody = jsonGetAllRequest.toRequestBody(mediaType)
-
-                val getAllRequest = Request.Builder()
-                    .url(getAllUrl)
-                    .post(getAllRequestBody)
-                    .build()
-
-                try {
-                    val getAllResponse: Response = client.newCall(getAllRequest).execute()
-                    if (getAllResponse.isSuccessful) {
-                        val responseMessage = getAllResponse.body?.string()
-                        val jsonResponse = JSONObject(responseMessage)
-                        val sorting = jsonResponse.getInt("sorting")
-                        val notes = jsonResponse.getJSONArray("notes")
-                        val labels = jsonResponse.getJSONArray("labels")
-                        notesDatabaseHelper.setSorting(sorting)
-
-
-                        for (i in 0 until labels.length()) {
-                            val label = labels.getJSONObject(i)
-                            notesDatabaseHelper.updateLabelSyn(label, idLabelsSync)
-                        }
-                        for (i in 0 until notes.length()) {
-                            val note = notes.getJSONObject(i)
-                            notesDatabaseHelper.updateNoteSyn(note, idLabelsSync)
-                        }
-                    } else {
-                        val errorMessage = "Error getting notes: ${getAllResponse.code} ${getAllResponse.message}"
-                        errorLog(Exception(errorMessage), context)
-                    }
-                } catch (e: Exception) {
-                    errorLog(e, context)
-                }
-            }
         }
-    } else {
-        errorLog(Exception("Insufficient data for login or server unavailable."), context)
     }
 }
 
-@SuppressLint("SuspiciousIndentation")
-fun syncToServ(context: Context) {
-    dostup = checkServerSync(context)
 
-        if (dostup) {
-            val notesDatabaseHelper = NotesDatabaseHelper(context)
-            val syncData = notesDatabaseHelper.sync()
-            val jsonLoginRequest = "{\"login\": \"$login\", \"password\": \"$password\", $syncData}"
-            val url = "$address/api/v1/sync_all"
-            val mediaType = "application/json".toMediaType()
-            val requestBody = jsonLoginRequest.toRequestBody(mediaType)
+suspend fun syncFromServ(context: Context) = withContext(Dispatchers.IO) {
+    val notesDatabaseHelper = NotesDatabaseHelper(context)
+    val creds = notesDatabaseHelper.getCreds()
+    if (!creds.isNullOrEmpty()) {
 
-            thread {
-                val request = Request.Builder()
-                    .url(url)
-                    .post(requestBody)
-                    .build()
+        val token = notesDatabaseHelper.decrypt(creds)
+        try {
+           val fileContent = downloadFileFromYandexDisk(token, "nestornote.json") ?: run {
+               return@withContext
+           }
 
-                try {
-                    client.newCall(request).execute()
-                } catch (e: Exception) {
-                    errorLog(e, context)
-                }
-            }
-        } else {
-            errorLog(Exception("Insufficient data for login or server unavailable."), context)
-        }
+           // Сохраняем файл локально
+           val localFile = File(context.filesDir, "nestornotes.json")
+           localFile.writeText(fileContent)
+
+           // Читаем локальный файл (можно использовать fileContent напрямую, но для примера читаем из файла)
+           val jsonString = localFile.readText()
+          // Парсим JSON
+          val jsonObject = JSONObject(jsonString)
+
+            // Получаем данные
+           val sorting = jsonObject.optInt("sorting", -1)
+           val notesArray = jsonObject.optJSONArray("notes") ?: JSONArray()
+           val labelsArray = jsonObject.optJSONArray("labels") ?: JSONArray()
+
+           // Карта соответствия локальных id меток и id в базе
+           val idLabelsSync = mutableMapOf<Int, Long>()
+
+           // Сначала обновляем или добавляем метки
+           for (i in 0 until labelsArray.length()) {
+               val labelJson = labelsArray.getJSONObject(i)
+               notesDatabaseHelper.updateLabelSyn(labelJson, idLabelsSync)
+           }
+
+            // Затем обновляем или добавляем заметки, используя idLabelsSync
+            for (i in 0 until notesArray.length()) {
+               val noteJson = notesArray.getJSONObject(i)
+               notesDatabaseHelper.updateNoteSyn(noteJson, idLabelsSync)
+           }
+
+           // Обновляем настройку сортировки, если она есть
+           if (sorting != -1) {
+               notesDatabaseHelper.setSorting(sorting)
+           }
+
+        } catch (e: Exception) {
+            errorLog(e, context)
+       }
+    }
 }
-
 
 fun errorLog(error: Exception, context: Context) {
     val currentTime = java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
@@ -136,46 +98,4 @@ fun errorLog(error: Exception, context: Context) {
     }catch (e: IOException) {
         //
     }
-}
-
-fun checkServerSync(context: Context): Boolean {
-    val notesDatabaseHelper = NotesDatabaseHelper(context)
-    val creds = notesDatabaseHelper.getCreds()
-    if (creds?.first != null && creds.second != null) {
-        login = creds.first.toString()
-        password = creds.second.toString()
-        var isServerAvailable = false
-        val latch = CountDownLatch(1)
-
-        checkServer { available ->
-            isServerAvailable = available
-            latch.countDown()
-        }
-
-        latch.await()
-        return isServerAvailable
-    }else {
-        return false
-    }
-}
-
-fun checkServer(callback: (Boolean) -> Unit) {
-    Thread {
-
-        val request = Request.Builder()
-            .url(address)
-            .build()
-
-        try {
-            val response: Response = client.newCall(request).execute()
-
-            if (!response.isSuccessful) {
-                callback(false)
-            } else {
-                callback(true)
-            }
-        } catch (e: Exception) {
-            callback(false)
-        }
-    }.start()
 }

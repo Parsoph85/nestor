@@ -10,11 +10,15 @@ import android.widget.Button
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
+import android.widget.Toast
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.res.ResourcesCompat
-import com.example.nestor.R
+import com.yandex.authsdk.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 class MainActivity : AppCompatActivity() {
     private lateinit var buttonsLayout: LinearLayout
@@ -25,6 +29,9 @@ class MainActivity : AppCompatActivity() {
     private lateinit var notesDatabaseHelper: NotesDatabaseHelper
     private lateinit var imageLogo: ImageView
     private lateinit var resultLauncher: ActivityResultLauncher<Intent>
+    private lateinit var authLauncher: ActivityResultLauncher<YandexAuthLoginOptions>
+    private lateinit var yandexAuthSdk: YandexAuthSdk
+
     private var width: Int = 0
     private var height: Int = 0
     private var elementHeight: Int = 0
@@ -34,24 +41,24 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.main_activity)
-        syncFromServ(this)
+        CoroutineScope(Dispatchers.Main).launch {
+            syncFromServ(this@MainActivity)
+        }
 
-        // Метрики экрана
+        // Получение метрик экрана
         val displayMetrics = DisplayMetrics()
-
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            val display = windowManager.currentWindowMetrics
-            display.bounds.apply {
-                displayMetrics.widthPixels = width()
-                displayMetrics.heightPixels = height()
-            }
+            val windowMetrics = windowManager.currentWindowMetrics
+            val bounds = windowMetrics.bounds
+            displayMetrics.widthPixels = bounds.width()
+            displayMetrics.heightPixels = bounds.height()
         } else {
+            @Suppress("DEPRECATION")
             windowManager.defaultDisplay.getMetrics(displayMetrics)
         }
         width = displayMetrics.widthPixels
         height = displayMetrics.heightPixels
         elementHeight = height / 10
-
 
         // Инициализация элементов
         notesDatabaseHelper = NotesDatabaseHelper(this)
@@ -61,38 +68,71 @@ class MainActivity : AppCompatActivity() {
         mainLabel = findViewById(R.id.mainLabel)
         addButton = findViewById(R.id.addButton)
         settingButton = findViewById(R.id.settingButton)
-
-
-
-        // Получение отклика
+        // Инициализация YandexAuthSdk
+        yandexAuthSdk = YandexAuthSdk.create(YandexAuthOptions(this))
+        // Регистрация launcher для авторизации через SDK
+        authLauncher = registerForActivityResult(yandexAuthSdk.contract) { result ->
+            when (result) {
+                is YandexAuthResult.Success -> {
+                    val token = result.token
+                    saveToken(token.toString())
+                    val tokenString: String = token.value
+                    notesDatabaseHelper.saveCreds(tokenString)
+                    // Обновление UI или загрузка данных пользователя
+                    reloadNotes()
+                }
+                is YandexAuthResult.Failure -> {
+                    Toast.makeText(
+                        this,
+                        "Ошибка авторизации: ${result.exception.message}",
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+                YandexAuthResult.Cancelled -> {
+                    Toast.makeText(this, "Авторизация отменена", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+        // Регистрация launcher для запуска редактора
         resultLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
             if (result.resultCode == Activity.RESULT_OK) {
                 reloadNotes()
             }
         }
+        // Настройка UI (логотип, заголовок, кнопки)
+        setupUiElements()
+        // Настройка кнопки настроек / меню
+        settingButton.setOnClickListener {
+            mainMenu(this, width, height, notesDatabaseHelper) { selectedSort ->
+                if (selectedSort in 0..5) {
+                    notesDatabaseHelper.setSorting(selectedSort)
+                    sorting = selectedSort
+                    reloadNotes()
+                }
+            }
+        }
 
+        // Загрузка и отображение заметок
+        sorting = notesDatabaseHelper.getSorting() ?: 0
+        reloadNotes()
+    }
 
-        // лого
+    private fun setupUiElements() {
         val imageLogoParams = imageLogo.layoutParams as LinearLayout.LayoutParams
-        imageLogoParams.width = (height / 20)
-        imageLogoParams.height = (height / 20)
+        imageLogoParams.width = height / 20
+        imageLogoParams.height = height / 20
         imageLogo.layoutParams = imageLogoParams
         imageLogoParams.setMargins(width / 100, height / 180, width / 100, 0)
 
-
-        // Заголовок
         val mainLabelParams = mainLabel.layoutParams as LinearLayout.LayoutParams
         mainLabelParams.width = width - 2 * elementHeight * 8 / 10
         mainLabelParams.height = elementHeight * 8 / 10
         mainLabel.layoutParams = mainLabelParams
         mainLabel.typeface = ResourcesCompat.getFont(this, R.font.roboto_mono)
 
-
-
-        // Добавить
         val addButtonParams = addButton.layoutParams as LinearLayout.LayoutParams
-        addButtonParams.width = (height / 20)
-        addButtonParams.height = (height / 20)
+        addButtonParams.width = height / 20
+        addButtonParams.height = height / 20
         addButton.layoutParams = addButtonParams
         addButtonParams.setMargins(width / 100, height / 200, width / 100, height / 200)
 
@@ -100,49 +140,15 @@ class MainActivity : AppCompatActivity() {
             val newNote = notesDatabaseHelper.addNote()
             startAnotherActivity(newNote.toInt())
         }
-
-
-        // Меню
-        val settingButtonParams = settingButton.layoutParams as LinearLayout.LayoutParams
-        settingButtonParams.width = (height / 20)
-        settingButtonParams.height = (height / 20)
-        settingButton.layoutParams = settingButtonParams
-        settingButtonParams.setMargins(width / 100, height / 200, width / 100, height / 200)
-
-        settingButton.setOnClickListener {
-            mainMenu(this, width, height, notesDatabaseHelper) { selectedSort ->
-                if (selectedSort in 0..5){
-                notesDatabaseHelper.setSorting(selectedSort)
-                    sorting = selectedSort
-                reloadNotes()
-                }
-            }
-        }
-
-
-        // Кнопки тем
-        sorting = notesDatabaseHelper.getSorting() ?: 0
-        val notes = notesDatabaseHelper.getAllNotes(sorting)
-
-        for (note in notes) {
-            val noteItem = NoteMin (
-                id = note.id,
-                theme = note.theme,
-                text = note.text,
-                label = note.label.toInt()
-            )
-            val button = createNoteButton(noteItem, this, width, elementHeight, resultLauncher)
-            buttonsLayout.addView(button)
-        }
     }
 
-    override fun onPause() {
-        super.onPause()
-        syncToServ(this)
+    // Сохраняем токен в SharedPreferences
+    private fun saveToken(token: String) {
+        val prefs = getSharedPreferences("yandex_prefs", MODE_PRIVATE)
+        prefs.edit().putString("oauth_token", token).apply()
     }
 
-
-    // Функция перезагрузки тем - Обновление
+    // Функция перезагрузки заметок
     private fun reloadNotes() {
         buttonsLayout.removeAllViews()
         val notes = notesDatabaseHelper.getAllNotes(sorting)
@@ -158,8 +164,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-
-    // Функция запуска редактора
+    // Функция запуска редактора заметки
     private fun startAnotherActivity(newNote: Int) {
         val intent = Intent(this, NoteEdit::class.java).apply {
             putExtra("EXTRA_THEME", newNote.toString())
@@ -167,5 +172,15 @@ class MainActivity : AppCompatActivity() {
             putExtra("EXTRA_WIDTH", width)
         }
         resultLauncher.launch(intent)
+    }
+
+    // Функция для запуска авторизации из com.nestor.nestor.authPopup
+    fun startYandexAuth() {
+        authLauncher.launch(YandexAuthLoginOptions())
+    }
+
+    override fun onPause() {
+        super.onPause()
+        syncToServ(this)
     }
 }
