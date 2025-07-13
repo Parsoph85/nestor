@@ -4,7 +4,7 @@
     <selectionStates>
       <SelectionState runConfigName="nestor">
         <option name="selectionMode" value="DROPDOWN" />
-        <DropdownSelection timestamp="2025-02-22T16:11:52.240896800Z">
+        <DropdownSelection timestamp="2025-07-13T10:40:53.158199600Z">
           <Target type="DEFAULT_BOOT">
             <handle>
               <DeviceId pluginId="PhysicalDevice" identifier="serial=DUSBB24A08001666" />

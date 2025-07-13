@@ -182,14 +182,13 @@ class NoteEdit : AppCompatActivity() {
 
         if (noteTextDb == "Введите текст"){
             editText.hint = noteTextDb
-
         }else{
             editText.setText(noteTextDb)
         }
         editText.setText(noteTextDb)
         updateClickableSpan()
         editText.typeface = ResourcesCompat.getFont(this, R.font.roboto_mono)
-        editText.textSize = (height / 80).toFloat() // resources.configuration.fontScale
+        editText.textSize = (height / 90).toFloat() // resources.configuration.fontScale
         editText.movementMethod = LinkMovementMethod.getInstance()
 
 
