@@ -8,7 +8,6 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
 import androidx.core.content.ContextCompat
-import com.example.nestor.R
 
 
 fun sortingMenu(context: Context, height: Int, onSortingSelected: (Int) -> Unit){

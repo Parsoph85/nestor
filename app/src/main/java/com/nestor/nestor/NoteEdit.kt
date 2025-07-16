@@ -25,7 +25,6 @@ import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.res.ResourcesCompat
-import com.example.nestor.R
 import java.io.File
 import java.io.FileOutputStream
 import kotlin.properties.Delegates

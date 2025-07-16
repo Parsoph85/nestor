@@ -9,7 +9,6 @@ import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
-import com.example.nestor.R
 
 
 fun mainMenu(context: Context, width: Int, height: Int, notesDatabaseHelper: NotesDatabaseHelper, onSortingSelected: (Int) -> Unit) {
@@ -39,7 +38,7 @@ fun mainMenu(context: Context, width: Int, height: Int, notesDatabaseHelper: Not
     val creds = notesDB.getCreds()
 
     menuLayout.addView(createMenuItem(context, dialog, height, R.drawable.auth, "Авторизация") {
-        if (creds?.first == null || creds.second == null || creds.first == "" || creds.second == "null" ) {
+        if (creds == null || creds == "" ) {
             if (context is AppCompatActivity) {
                 authPopup(context, width)
             }

@@ -455,25 +455,25 @@ class NotesDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE
     }
 
 
-
-    fun saveCreds(login: String, password: String) {
+    fun saveCreds(login: String) {
+        var loginHash = ""
+        if (login != ""){
+            loginHash = encrypt(login)
+        }
         val db = writableDatabase
         val values = ContentValues().apply {
-            put(COLUMN_SETTING_UNAME, login)
-            put(COLUMN_SETTING_PWWD, password)
+            put(COLUMN_SETTING_UNAME, loginHash)
         }
         db.update(TABLE_SETTING, values, "$COLUMN_NOTE_ID = ?", arrayOf("1"))
         db.close()
     }
 
 
-    fun getCreds(): Pair<String?, String?>? {
+    fun getCreds(): String? {
         val db = readableDatabase
-        var creds: Pair<String?, String?>? = null
-
         val cursor = db.query(
             TABLE_SETTING,
-            arrayOf(COLUMN_SETTING_UNAME, COLUMN_SETTING_PWWD),
+            arrayOf(COLUMN_SETTING_UNAME),
             "$COLUMN_LABEL_ID = ?",
             arrayOf("1"),
             null,
@@ -483,16 +483,16 @@ class NotesDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE
 
         return try {
             if (cursor.moveToFirst()) {
-                val username = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_SETTING_UNAME))
-                val password = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_SETTING_PWWD))
-                creds = Pair(username, password) // Сохраняем имя пользователя и пароль в пару
+                val loginHash = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_SETTING_UNAME))
+                loginHash  // Возвращаем значение из курсора
+            } else {
+                null  // Если данных нет
             }
-            creds // Возвращаем найденные учетные данные или null, если не найдено
         } catch (e: Exception) {
-            e.printStackTrace() // Логируем ошибку для отладки
-            null // Возвращаем null в случае ошибки
+            e.printStackTrace()
+            null
         } finally {
-            cursor.close() // Закрываем курсор
+            cursor.close()
             db.close()
         }
     }
@@ -556,7 +556,7 @@ class NotesDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE
 
         val cursor = db.query(
             TABLE_SETTING,
-            arrayOf(COLUMN_SETTING_UNAME, COLUMN_SETTING_PWWD, COLUMN_SETTING_SORTING),
+            arrayOf(COLUMN_SETTING_UNAME, COLUMN_SETTING_SORTING),
             "$COLUMN_LABEL_ID = ?",
             arrayOf("1"),
             null,

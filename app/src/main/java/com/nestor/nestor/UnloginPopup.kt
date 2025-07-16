@@ -9,7 +9,6 @@ import android.widget.Button
 import android.widget.ImageView
 import android.widget.LinearLayout
 import androidx.appcompat.app.AlertDialog
-import com.example.nestor.R
 
 fun unloginPopup(activity: Activity, width: Int) {
     val layoutInflater = LayoutInflater.from(activity)
@@ -45,11 +44,10 @@ fun unloginPopup(activity: Activity, width: Int) {
 
     val notesDatabaseHelper = NotesDatabaseHelper(activity)
     val creds = notesDatabaseHelper.getCreds()
-    if (creds?.first != null && creds.second != null) {
+    if (creds != null) {
         val login = ""
-        val password = ""
         unloginButton.setOnClickListener {
-            notesDatabaseHelper.saveCreds(login, password)
+            notesDatabaseHelper.saveCreds(login)
             dialog.dismiss()
         }
     }
