@@ -13,8 +13,8 @@ android {
         // В Kotlin DSL нужно использовать minSdk, а не minSdkVersion()
         minSdk = rootProject.extra["defaultMinSdkVersion"] as Int
         targetSdk = 35
-        versionCode = 7
-        versionName = "1.31"
+        versionCode = 8
+        versionName = "1.32"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
