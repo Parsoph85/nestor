@@ -20,7 +20,6 @@ fun authPopup(activity: Activity, width: Int) {
     val layoutParams = FrameLayout.LayoutParams((width * 0.9).toInt(), (width * 1.5).toInt())
     mainLayout.layoutParams = layoutParams
 
-    authButton.text = "Авторизоваться через Яндекс"
     authButton.setOnClickListener {
         if (activity is MainActivity) {
             activity.startYandexAuth()
